@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Class Spinner 3.0 (Rapid Fire)</title>
+    <title>Ultimate Class Spinner 4.0 (Heatmap)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -13,6 +13,17 @@
     <style>
         body { margin: 0; overflow: hidden; background-color: #0f172a; color: white; font-family: 'Segoe UI', system-ui, sans-serif; }
         
+        /* Animated Backgrounds */
+        .animated-bg {
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
@@ -67,7 +78,8 @@
           Scales: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>,
           ThumbsUp: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>,
           ThumbsDown: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>,
-          Zap: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Zap: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+          BarChart: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>
         };
 
         // --- 2. THEMES & UTILS ---
@@ -264,10 +276,7 @@
 
         const GroupMakerModal = ({ names, onClose, onStartScoring }) => {
             const [groupCount, setGroupCount] = useState(4); const [groups, setGroups] = useState([]); const [copied, setCopied] = useState(false);
-            
-            // Create options for dropdown (2 to 10)
             const groupOptions = [2, 3, 4, 5, 6, 7, 8, 9, 10];
-
             const generateGroups = () => {
                 if (names.length === 0) return;
                 const shuffled = [...names].sort(() => Math.random() - 0.5);
@@ -276,7 +285,6 @@
                 setGroups(newGroups);
                 setCopied(false);
             };
-
             const copyToClipboard = () => {
                 let text = "";
                 groups.forEach((group, i) => { text += `Team ${i + 1}:\n` + group.map(m => `- ${m}`).join('\n') + "\n\n"; });
@@ -284,9 +292,7 @@
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
             };
-
             useEffect(() => { generateGroups(); }, [groupCount]);
-
             return (
                 <div className="modal-overlay">
                     <div className="modal" style={{maxWidth:800,width:'90%',textAlign:'left',maxHeight:'85vh',display:'flex',flexDirection:'column'}}>
@@ -312,11 +318,11 @@
                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}><h2 style={{margin:0,fontSize:'1.5rem'}}>How to Use</h2><button onClick={onClose} className="btn" style={{padding:4}}><Icons.X/></button></div>
                  <div style={{display:'flex',flexDirection:'column',gap:16,maxHeight:'60vh',overflowY:'auto',paddingRight:8}}>
                     <div><div style={{fontWeight:700,marginBottom:4,display:'flex',alignItems:'center',gap:8}}><span style={{background:'rgba(128,128,128,0.2)',padding:'2px 8px',borderRadius:4}}>Spacebar</span><span>to Spin</span></div><div style={{fontSize:'0.9rem',opacity:0.8}}>Press spacebar to spin.</div></div>
+                    <div><div style={{fontWeight:700,marginBottom:4,display:'flex',alignItems:'center',gap:8}}><Icons.BarChart/> Heatmap</div><div style={{fontSize:'0.9rem',opacity:0.8}}>Toggle "Heatmap" to track participation counts. Green=0, Red=Many.</div></div>
                     <div><div style={{fontWeight:700,marginBottom:4,display:'flex',alignItems:'center',gap:8}}><Icons.Scales/> Fair Mode</div><div style={{fontSize:'0.9rem',opacity:0.8}}>Auto-hides winners so everyone gets picked once. Reset when done.</div></div>
                     <div><div style={{fontWeight:700,marginBottom:4,display:'flex',alignItems:'center',gap:8}}><Icons.Swords/> Battle Mode</div><div style={{fontSize:'0.9rem',opacity:0.8}}>Selects two students sequentially for a "VS" face-off.</div></div>
                     <div><div style={{fontWeight:700,marginBottom:4,display:'flex',alignItems:'center',gap:8}}><Icons.Brain/> Concept Mode</div><div style={{fontSize:'0.9rem',opacity:0.8}}>Adds a second wheel. Click Edit <Icons.Edit/> to change topics.</div></div>
                     <div><div style={{fontWeight:700,marginBottom:4,display:'flex',alignItems:'center',gap:8}}><Icons.Save/> Class Manager</div><div style={{fontSize:'0.9rem',opacity:0.8}}>Save your current list or load a previously saved class.</div></div>
-                    <div><div style={{fontWeight:700,marginBottom:4,display:'flex',alignItems:'center',gap:8}}><Icons.Users/> Instant Teams</div><div style={{fontSize:'0.9rem',opacity:0.8}}>Randomize groups and track scores.</div></div>
                     <div><div style={{fontWeight:700,marginBottom:4,display:'flex',alignItems:'center',gap:8}}><Icons.EyeOff/> Hide Students</div><div style={{fontSize:'0.9rem',opacity:0.8}}>Click a name chip in the sidebar to temporarily hide it.</div></div>
                  </div>
                  <div style={{marginTop:20,textAlign:'center'}}><button onClick={onClose} className="btn btn-primary" style={{width:'100%',fontSize:'1rem',padding:12}}>Got it!</button></div>
@@ -385,8 +391,6 @@
           const [projectorMode, setProjectorMode] = useState(false); const [showTimer, setShowTimer] = useState(false);
           const [hubImage, setHubImage] = useState(null); const [showHelp, setShowHelp] = useState(false);
           const [showImport, setShowImport] = useState(false); const [showGroups, setShowGroups] = useState(false);
-          
-          // Advanced State
           const [hiddenNames, setHiddenNames] = useState([]); 
           const [concepts, setConcepts] = useState(defaultConcepts); 
           const [showConceptEdit, setShowConceptEdit] = useState(false);
@@ -398,11 +402,13 @@
           const [activeTeams, setActiveTeams] = useState([]); const [teamScores, setTeamScores] = useState([]);
           const [fairMode, setFairMode] = useState(false);
           const [winnerTimerActive, setWinnerTimerActive] = useState(false);
-          
-          // RAPID FIRE STATE
           const [rapidMode, setRapidMode] = useState(false);
           const [rapidTarget, setRapidTarget] = useState(3);
           const [rapidWinners, setRapidWinners] = useState([]);
+          
+          // HEATMAP STATE
+          const [participation, setParticipation] = useState({});
+          const [showHeatmap, setShowHeatmap] = useState(false);
 
           const fileInputRef = useRef(null); 
           const canvasRef = useRef(null); const canvasRef2 = useRef(null);
@@ -425,9 +431,18 @@
               setNewListName(""); 
               alert(`Class "${newListName}" saved!`);
           };
-          const loadList = (e) => { const k = e.target.value; if(savedLists[k]) { setNames(savedLists[k]); setInputText(savedLists[k].join('\n')); setHiddenNames([]); } };
+          const loadList = (e) => { 
+              const k = e.target.value; 
+              if(savedLists[k]) { 
+                  setNames(savedLists[k]); 
+                  setInputText(savedLists[k].join('\n')); 
+                  setHiddenNames([]);
+                  setParticipation({}); // Reset counts for new class
+              } 
+          };
+          const deleteList = (k) => { const u={...savedLists}; delete u[k]; setSavedLists(u); localStorage.setItem('spinner_lists',JSON.stringify(u)); };
           const updateNames = (t) => { setInputText(t); setNames(t.split('\n').filter(n=>n.trim())); };
-          const performImport = (l) => { setNames(l); setInputText(l.join('\n')); setShowImport(false); setHiddenNames([]); };
+          const performImport = (l) => { setNames(l); setInputText(l.join('\n')); setShowImport(false); setHiddenNames([]); setParticipation({}); };
           const toggleHidden = (n) => { setHiddenNames(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n]); };
           const shuffleNames = () => { const s=[...names].sort(()=>Math.random()-0.5); setInputText(s.join('\n')); setNames(s); };
           const removeWinner = () => { 
@@ -442,7 +457,6 @@
           const handleUpdateScore = (i,c) => { const n=[...teamScores]; n[i]+=c; setTeamScores(n); if(soundEnabled) playSound('tick', audioCtxRef, soundTheme); };
           const toggleBloomMode = () => { setBattleMode(false); if (bloomMode === 'off') setBloomMode('solo'); else if (bloomMode === 'solo') setBloomMode('dual'); else setBloomMode('off'); };
 
-          // RAPID FIRE TRIGGER
           const startRapidFire = (count) => {
               setRapidMode(true);
               setRapidTarget(count);
@@ -514,17 +528,18 @@
 
                 if (velocityRef.current === 0 && (bloomMode !== 'dual' || velocityRef2.current === 0)) {
                     isSpinningRef.current = false; pointerRef.current = 0; pointerRef2.current = 0; setIsSpinning(false);
-                    
                     let w = null;
                     if (mainList.length > 0) { const slice = (2 * Math.PI) / mainList.length; let p = (0 - rotationRef.current) % (2 * Math.PI); if (p < 0) p += 2 * Math.PI; const i = Math.floor(p / slice); if (i >= 0 && i < mainList.length) w = mainList[i]; }
                     let bw = null;
                     if (bloomMode === 'dual') { const slice = (2 * Math.PI) / concepts.length; let p = (0 - rotationRef2.current) % (2 * Math.PI); if (p < 0) p += 2 * Math.PI; const i = Math.floor(p / slice); if (i >= 0 && i < concepts.length) bw = concepts[i]; }
 
-                    // RAPID FIRE LOGIC
                     if (rapidMode && w) {
                          const newWinners = [...rapidWinners, w];
                          setRapidWinners(newWinners);
-                         setHiddenNames(prev => [...prev, w]); // Auto hide
+                         setHiddenNames(prev => [...prev, w]); 
+                         // HEATMAP UPDATE
+                         setParticipation(prev => ({ ...prev, [w]: (prev[w] || 0) + 1 }));
+                         
                          playSound('win', audioCtxRef, soundTheme); 
                          FireConfetti(confettiCanvasRef.current);
                          
@@ -551,6 +566,8 @@
                             const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); 
                             setWinnerHistory(p => [{name: w, time: ts}, ...p].slice(0, 10)); 
                             if (fairMode && !hiddenNames.includes(w)) { setHiddenNames(prev => [...prev, w]); }
+                            // HEATMAP UPDATE
+                            setParticipation(prev => ({ ...prev, [w]: (prev[w] || 0) + 1 }));
                         }
                         if (soundEnabled) playSound('win', audioCtxRef, soundTheme); setTimeout(() => FireConfetti(confettiCanvasRef.current), 10);
                     }
@@ -709,14 +726,43 @@
                         <div style={{marginTop: 20}}>
                             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
                                 <span className="section-title">Names ({activeNames.length}/{names.length})</span>
-                                {hiddenNames.length > 0 && <button onClick={() => setHiddenNames([])} style={{fontSize:'0.7rem', color: '#ef4444', background:'none', border:'none', cursor:'pointer'}}><Icons.Refresh /> Reset Hidden</button>}
+                                <div style={{display:'flex', gap:4}}>
+                                    <button onClick={() => setShowHeatmap(!showHeatmap)} className="btn" style={{padding:'2px 6px', fontSize:'0.7rem', background: showHeatmap ? theme.accent : 'rgba(128,128,128,0.1)'}}>
+                                       <Icons.BarChart /> {showHeatmap ? 'Editor' : 'Heatmap'}
+                                    </button>
+                                    {(hiddenNames.length > 0 || Object.keys(participation).length > 0) && (
+                                        <button onClick={() => {setHiddenNames([]); setParticipation({})}} style={{fontSize:'0.7rem', color: '#ef4444', background:'none', border:'none', cursor:'pointer'}}><Icons.Refresh /> Reset</button>
+                                    )}
+                                </div>
                             </div>
-                            <textarea value={inputText} onChange={(e) => updateNames(e.target.value)} className="textarea" placeholder="Enter names..." style={{height: 120, minHeight: 100}}/>
-                            <div style={{display:'flex', flexWrap:'wrap', gap: 4, marginTop: 8}}>
-                                {names.slice(0, 50).map((n, i) => (
-                                    <div key={i} onClick={() => toggleHidden(n)} className={`chip ${hiddenNames.includes(n) ? 'hidden' : ''}`} title="Click to hide/show">{n}</div>
-                                ))}
-                            </div>
+                            
+                            {showHeatmap ? (
+                                <div style={{height: 120, minHeight: 100, overflowY:'auto', background:'rgba(0,0,0,0.2)', borderRadius:8, padding:8, marginTop: 8}}>
+                                    {names.map(n => {
+                                        const count = participation[n] || 0;
+                                        let color = '#10b981'; 
+                                        if(count === 1) color = '#f59e0b'; 
+                                        if(count >= 2) color = '#ef4444'; 
+                                        return (
+                                            <div key={n} style={{display:'flex', justifyContent:'space-between', fontSize:'0.9rem', marginBottom:4, borderBottom:'1px solid rgba(255,255,255,0.05)', paddingBottom:2}}>
+                                                <span>{n}</span>
+                                                <span style={{background:color, color:'white', borderRadius:'10px', padding:'0 6px', fontSize:'0.75rem', fontWeight:'bold'}}>{count}</span>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            ) : (
+                                <textarea value={inputText} onChange={(e) => updateNames(e.target.value)} className="textarea" placeholder="Enter names..." style={{height: 120, minHeight: 100}}/>
+                            )}
+
+                            {/* ABSENT TOGGLES */}
+                            {!showHeatmap && (
+                                <div style={{display:'flex', flexWrap:'wrap', gap: 4, marginTop: 8}}>
+                                    {names.slice(0, 50).map((n, i) => (
+                                        <div key={i} onClick={() => toggleHidden(n)} className={`chip ${hiddenNames.includes(n) ? 'hidden' : ''}`} title="Click to hide/show">{n}</div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                         
                         <div style={{marginTop: 8}}>
