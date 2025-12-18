@@ -1,260 +1,3 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-
-// --- 1. ICONS ---
-const Icons = {
-  Settings: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
-  Shuffle: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>,
-  ArrowDown: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>,
-  Volume2: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>,
-  VolumeX: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>,
-  Trophy: () => <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
-  X: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-  UserMinus: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg>,
-  Save: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>,
-  Folder: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>,
-  Palette: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 22C6.5 22 2 17.5 2 12S6.5 2 12 2s10 4.5 10 10c0 1.28-.75 2.37-1.83 2.92-.71.36-1.17 1.05-1.17 1.83 0 .7.56 1.25 1.25 1.25H20"/></svg>,
-  Eye: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
-  EyeOff: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>,
-  Trash: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
-  Maximize: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="2" ry="2"></rect><line x1="12" y1="2" x2="12" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg>,
-  Minimize: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="15"></line><line x1="15" y1="9" x2="9" y2="15"></line></svg>,
-  Clock: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-  Play: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
-  Pause: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>,
-  RotateCcw: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>,
-  Bell: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>,
-  HelpCircle: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
-  Star: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>,
-  Clipboard: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>,
-  History: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>,
-  Users: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-  Copy: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>,
-  Check: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>,
-  Swords: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 17.5L3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/></svg>,
-  Brain: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>,
-  Edit: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-};
-
-// --- 2. THEMES & UTILS ---
-const THEMES = {
-  modern: { name: "Dark Modern", colors: ['#EF4444', '#F97316', '#F59E0B', '#10B981', '#06B6D4', '#3B82F6', '#6366F1', '#8B5CF6', '#EC4899', '#F43F5E'], bg: "#0f172a", sidebar: "#1e293b", text: "#f1f5f9", accent: "#7c3aed" },
-  pastel: { name: "Soft Pastel", colors: ['#fca5a5', '#fdba74', '#fcd34d', '#86efac', '#67e8f9', '#93c5fd', '#a5b4fc', '#c4b5fd', '#f9a8d4', '#fda4af'], bg: "#f8fafc", sidebar: "#ffffff", text: "#334155", accent: "#ec4899" },
-  nature: { name: "Forest Hike", colors: ['#4d7c0f', '#15803d', '#047857', '#0f766e', '#a16207', '#b45309', '#d97706', '#65a30d'], bg: "#1c1917", sidebar: "#292524", text: "#e7e5e4", accent: "#65a30d", pattern: "repeating-linear-gradient(45deg, #1c1917, #1c1917 10px, #292524 10px, #292524 20px)" },
-  classic: { name: "Classroom", colors: ['#ef4444', '#3b82f6', '#eab308', '#22c55e', '#a855f7'], bg: "#f0f0f0", sidebar: "#ffffff", text: "#1f2937", accent: "#2563eb", pattern: "linear-gradient(to right, #e5e5f7 1px, transparent 1px), linear-gradient(to bottom, #e5e5f7 1px, transparent 1px)" }
-};
-
-const playSound = (type, audioCtxRef, theme = 'standard') => {
-  try {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) return;
-    if (!audioCtxRef.current) audioCtxRef.current = new AudioContextClass();
-    if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume().catch(() => {});
-    const ctx = audioCtxRef.current;
-    
-    if (theme === 'standard') {
-        if (type === 'tick') {
-            const osc = ctx.createOscillator(); const gain = ctx.createGain();
-            osc.connect(gain); gain.connect(ctx.destination);
-            osc.type = 'triangle'; osc.frequency.setValueAtTime(600, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.05);
-            gain.gain.setValueAtTime(0.2, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
-            osc.start(); osc.stop(ctx.currentTime + 0.06);
-        } else if (type === 'win') {
-            [440, 554, 659, 880].forEach((freq, i) => {
-                const o = ctx.createOscillator(); const g = ctx.createGain();
-                o.type = 'square'; o.frequency.value = freq;
-                o.connect(g); g.connect(ctx.destination);
-                g.gain.setValueAtTime(0, ctx.currentTime); g.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.05);
-                g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.0);
-                o.start(ctx.currentTime + i * 0.1); o.stop(ctx.currentTime + 1.5);
-            });
-        }
-    } else if (theme === 'arcade') {
-        if (type === 'tick') {
-             const o = ctx.createOscillator(); const g = ctx.createGain();
-             o.type = 'square'; o.frequency.setValueAtTime(200, ctx.currentTime);
-             o.connect(g); g.connect(ctx.destination);
-             g.gain.setValueAtTime(0.1, ctx.currentTime); g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.03);
-             o.start(); o.stop(ctx.currentTime + 0.03);
-        } else if (type === 'win') {
-             [523, 659, 784, 1046, 784, 1046].forEach((f, i) => {
-                 const o = ctx.createOscillator(); const g = ctx.createGain();
-                 o.type = 'sawtooth'; o.frequency.value = f;
-                 o.connect(g); g.connect(ctx.destination);
-                 g.gain.setValueAtTime(0.1, ctx.currentTime + i * 0.1); g.gain.linearRampToValueAtTime(0, ctx.currentTime + i * 0.1 + 0.1);
-                 o.start(ctx.currentTime + i * 0.1); o.stop(ctx.currentTime + i * 0.1 + 0.1);
-             });
-        }
-    } else if (theme === 'spooky') {
-        if (type === 'tick') {
-            const o = ctx.createOscillator(); const g = ctx.createGain();
-            o.type = 'sine'; o.frequency.setValueAtTime(100, ctx.currentTime); o.frequency.linearRampToValueAtTime(50, ctx.currentTime + 0.1);
-            o.connect(g); g.connect(ctx.destination); g.gain.setValueAtTime(0.3, ctx.currentTime); g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.1);
-            o.start(); o.stop(ctx.currentTime + 0.1);
-        } else if (type === 'win') {
-             const o = ctx.createOscillator(); const g = ctx.createGain();
-             o.type = 'sine'; o.frequency.setValueAtTime(300, ctx.currentTime); o.frequency.linearRampToValueAtTime(600, ctx.currentTime + 1); o.frequency.linearRampToValueAtTime(200, ctx.currentTime + 2);
-             o.connect(g); g.connect(ctx.destination); g.gain.setValueAtTime(0, ctx.currentTime); g.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.5); g.gain.linearRampToValueAtTime(0, ctx.currentTime + 2.5);
-             o.start(); o.stop(ctx.currentTime + 2.5);
-        }
-    }
-    if (type === 'bell') {
-      const osc = ctx.createOscillator(); const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, ctx.currentTime);
-      gain.gain.setValueAtTime(0.1, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2.0);
-      osc.start(); osc.stop(ctx.currentTime + 2.0);
-    }
-  } catch (e) { console.warn("Audio play failed", e); }
-};
-
-const FireConfetti = (canvas) => {
-  if (!canvas) return; const ctx = canvas.getContext('2d'); if (!ctx) return;
-  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-  let particles = []; const colors = ['#ef4444', '#eab308', '#3b82f6', '#22c55e'];
-  for (let i=0; i<200; i++) particles.push({x:canvas.width/2,y:canvas.height/2,vx:(Math.random()-0.5)*25,vy:(Math.random()-0.5)*25,size:Math.random()*12+6,color:colors[Math.floor(Math.random()*colors.length)],life:120,decay:Math.random()*0.04+0.01});
-  const animate = () => { ctx.clearRect(0,0,canvas.width,canvas.height); let active = false; particles.forEach(p=>{ if(p.life>0){ active=true; p.x+=p.vx; p.y+=p.vy; p.vy+=0.4; p.life-=1; p.size*=0.95; ctx.fillStyle=p.color; ctx.globalAlpha=Math.min(p.life/20,1); ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fill(); } }); if(active) requestAnimationFrame(animate); else ctx.clearRect(0,0,canvas.width,canvas.height); };
-  animate();
-};
-
-const defaultNames = ["Emma", "Liam", "Olivia", "Noah", "Ava"];
-const defaultConcepts = ["Remember", "Understand", "Apply", "Analyze", "Evaluate", "Create"];
-
-// --- 3. SUB-COMPONENTS ---
-
-const Timer = ({ audioCtx, onClose }) => {
-  const [mode, setMode] = useState('stopwatch'); const [time, setTime] = useState(0); 
-  const [isRunning, setIsRunning] = useState(false); const [initialTime, setInitialTime] = useState(0);
-  const timeOptions = [{label:'5s',val:5},{label:'10s',val:10},{label:'20s',val:20},{label:'30s',val:30},{label:'60s',val:60},{label:'2 min',val:120},{label:'3 min',val:180},{label:'4 min',val:240},{label:'5 min',val:300},{label:'10 min',val:600},{label:'20 min',val:1200},{label:'30 min',val:1800},{label:'1 hour',val:3600}];
-  useEffect(() => {
-    let interval;
-    if (isRunning) { interval = setInterval(() => { setTime(prev => { if (mode === 'timer') { if (prev <= 1) { playSound('bell', audioCtx); setIsRunning(false); return 0; } return prev - 1; } return prev + 1; }); }, 1000); }
-    return () => clearInterval(interval);
-  }, [isRunning, mode, audioCtx]);
-  const formatTime = (s) => { const mins = Math.floor(s/60); const secs = s%60; return mins>=60?`${Math.floor(mins/60)}:${(mins%60).toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`:`${mins}:${secs.toString().padStart(2,'0')}`; };
-  const handleSelectTime = (e) => { const seconds = parseInt(e.target.value); if (!isNaN(seconds)) { setMode('timer'); setInitialTime(seconds); setTime(seconds); setIsRunning(false); } };
-  const handleReset = () => { setIsRunning(false); setTime(mode === 'timer' ? initialTime : 0); };
-  return (
-    <div style={{position:'absolute',top:'70px',left:'16px',zIndex:40,padding:'12px',background:'rgba(15,23,42,0.85)',backdropFilter:'blur(8px)',borderRadius:'12px',border:'1px solid rgba(255,255,255,0.15)',boxShadow:'0 4px 20px rgba(0,0,0,0.4)',display:'flex',flexDirection:'column',gap:'8px',minWidth:'160px'}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <div style={{fontSize:'1.8rem',fontWeight:800,fontFamily:'monospace',lineHeight:1,fontVariantNumeric:'tabular-nums',color:time<=10&&mode==='timer'&&time>0?'#ef4444':'#fff'}}>{formatTime(time)}</div>
-          <button onClick={onClose} style={{background:'none',border:'none',color:'#94a3b8',cursor:'pointer',padding:4}}><Icons.X/></button>
-      </div>
-      <select onChange={handleSelectTime} style={{background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.1)',color:'#fff',padding:'6px',borderRadius:'6px',fontSize:'0.85rem',outline:'none',cursor:'pointer',width:'100%'}} defaultValue=""><option value="" disabled>Set Duration...</option>{timeOptions.map((opt,i)=>(<option key={i} value={opt.val} style={{color:'#000'}}>{opt.label}</option>))}</select>
-      <div style={{display:'flex',gap:8}}>
-        <button onClick={()=>setIsRunning(!isRunning)} className="btn" style={{flex:1,background:isRunning?'#ef4444':'#22c55e',color:'white',justifyContent:'center',padding:'8px',height:'36px'}}>{isRunning?<Icons.Pause/>:<Icons.Play/>}</button>
-        <button onClick={handleReset} className="btn" style={{background:'rgba(255,255,255,0.1)',justifyContent:'center',padding:'8px',height:'36px',width:'36px'}}><Icons.RotateCcw/></button>
-      </div>
-    </div>
-  );
-};
-
-const Scoreboard = ({ teams, scores, onUpdateScore, onClose }) => {
-  return (
-    <div style={{position:'absolute',bottom:0,left:0,right:0,background:'rgba(15,23,42,0.95)',borderTop:'1px solid rgba(255,255,255,0.1)',backdropFilter:'blur(10px)',padding:'16px',zIndex:45,display:'flex',gap:16,overflowX:'auto',alignItems:'center'}}>
-        <div style={{display:'flex',alignItems:'center',gap:12,marginRight:'auto'}}><span style={{fontWeight:800,fontSize:'1.2rem',color:'#7c3aed',textTransform:'uppercase',letterSpacing:1}}>Scoreboard</span><button onClick={onClose} className="btn" style={{background:'rgba(255,255,255,0.1)',padding:6}}><Icons.X/></button></div>
-        {teams.map((group, i) => (<div key={i} style={{background:'rgba(255,255,255,0.05)',padding:'8px 16px',borderRadius:8,display:'flex',flexDirection:'column',alignItems:'center',minWidth:100,border:'1px solid rgba(255,255,255,0.1)'}}><span style={{fontSize:'0.75rem',opacity:0.7,marginBottom:4}}>Team {i+1}</span><span style={{fontSize:'1.5rem',fontWeight:800,lineHeight:1,marginBottom:8}}>{scores[i]}</span><div style={{display:'flex',gap:4}}><button onClick={()=>onUpdateScore(i,-1)} className="btn" style={{padding:'2px 8px',background:'rgba(239,68,68,0.2)',color:'#f87171',fontSize:'1rem'}}>-</button><button onClick={()=>onUpdateScore(i,1)} className="btn" style={{padding:'2px 8px',background:'rgba(34,197,94,0.2)',color:'#4ade80',fontSize:'1rem'}}>+</button></div></div>))}
-    </div>
-  );
-};
-
-const GroupMakerModal = ({ names, onClose, onStartScoring }) => {
-    const [groupCount, setGroupCount] = useState(4); const [groups, setGroups] = useState([]); const [copied, setCopied] = useState(false);
-    
-    // Create options for dropdown (2 to 10)
-    const groupOptions = [2, 3, 4, 5, 6, 7, 8, 9, 10];
-
-    const generateGroups = () => {
-        if (names.length === 0) return;
-        const shuffled = [...names].sort(() => Math.random() - 0.5);
-        const newGroups = Array.from({ length: groupCount }, () => []);
-        shuffled.forEach((name, i) => { newGroups[i % groupCount].push(name); });
-        setGroups(newGroups);
-        setCopied(false);
-    };
-
-    const copyToClipboard = () => {
-        let text = "";
-        groups.forEach((group, i) => { text += `Team ${i + 1}:\n` + group.map(m => `- ${m}`).join('\n') + "\n\n"; });
-        navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
-
-    useEffect(() => { generateGroups(); }, [groupCount]);
-
-    return (
-        <div className="modal-overlay">
-            <div className="modal" style={{maxWidth:800,width:'90%',textAlign:'left',maxHeight:'85vh',display:'flex',flexDirection:'column'}}>
-                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}><h2 style={{margin:0,fontSize:'1.5rem'}}>Instant Team Maker</h2><button onClick={onClose} className="btn" style={{padding:4}}><Icons.X/></button></div>
-                 <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20,background:'rgba(128,128,128,0.1)',padding:12,borderRadius:8,flexWrap:'wrap'}}>
-                    <span style={{fontWeight:600}}>Split into:</span>
-                    <select value={groupCount} onChange={(e)=>setGroupCount(parseInt(e.target.value))} style={{padding:'8px 12px',borderRadius:6,border:'1px solid rgba(128,128,128,0.3)',background:'var(--bg-color)',color:'inherit',fontSize:'1rem',fontWeight:700,cursor:'pointer',outline:'none'}}>
-                        {groupOptions.map(num=>(<option key={num} value={num}>{num} Teams</option>))}
-                    </select>
-                    <button onClick={generateGroups} className="btn" style={{background:'rgba(128,128,128,0.2)'}}><Icons.Shuffle/> Reshuffle</button>
-                    <button onClick={copyToClipboard} className="btn" style={{background:'rgba(128,128,128,0.2)'}}>{copied?<><Icons.Check/> Copied!</>:<><Icons.Copy/> Copy List</>}</button>
-                    <button onClick={()=>onStartScoring(groups)} className="btn" style={{background:'#7c3aed',color:'white',marginLeft:'auto',boxShadow:'0 4px 12px rgba(124,58,237,0.3)'}}><Icons.Trophy/> Start Scoring</button>
-                 </div>
-                 <div style={{flex:1,overflowY:'auto',display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:12}}>{groups.map((group,i)=>(<div key={i} style={{background:'rgba(128,128,128,0.1)',padding:12,borderRadius:8,border:'1px solid rgba(128,128,128,0.1)'}}><div style={{fontWeight:800,color:'#7c3aed',marginBottom:8,borderBottom:'1px solid rgba(128,128,128,0.1)',paddingBottom:4}}>Team {i+1}</div>{group.map((member,j)=>(<div key={j} style={{fontSize:'0.9rem',padding:'2px 0'}}>{member}</div>))}</div>))}</div>
-            </div>
-        </div>
-    );
-};
-
-const HelpModal = ({ onClose }) => (
-    <div className="modal-overlay">
-      <div className="modal" style={{maxWidth:500,textAlign:'left'}}>
-         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}><h2 style={{margin:0,fontSize:'1.5rem'}}>How to Use</h2><button onClick={onClose} className="btn" style={{padding:4}}><Icons.X/></button></div>
-         <div style={{display:'flex',flexDirection:'column',gap:16,maxHeight:'60vh',overflowY:'auto',paddingRight:8}}>
-            <div><div style={{fontWeight:700,marginBottom:4,display:'flex',alignItems:'center',gap:8}}><span style={{background:'rgba(128,128,128,0.2)',padding:'2px 8px',borderRadius:4}}>Spacebar</span><span>to Spin</span></div><div style={{fontSize:'0.9rem',opacity:0.8}}>Press spacebar to spin.</div></div>
-            <div><div style={{fontWeight:700,marginBottom:4,display:'flex',alignItems:'center',gap:8}}><Icons.Swords/> Battle Mode</div><div style={{fontSize:'0.9rem',opacity:0.8}}>Selects two students sequentially for a "VS" face-off.</div></div>
-            <div><div style={{fontWeight:700,marginBottom:4,display:'flex',alignItems:'center',gap:8}}><Icons.Brain/> Concept Mode</div><div style={{fontSize:'0.9rem',opacity:0.8}}>Adds a second wheel. Click Edit <Icons.Edit/> to change topics.</div></div>
-            <div><div style={{fontWeight:700,marginBottom:4,display:'flex',alignItems:'center',gap:8}}><Icons.Users/> Instant Teams</div><div style={{fontSize:'0.9rem',opacity:0.8}}>Randomize groups and track scores.</div></div>
-            <div><div style={{fontWeight:700,marginBottom:4,display:'flex',alignItems:'center',gap:8}}><Icons.EyeOff/> Hide Students</div><div style={{fontSize:'0.9rem',opacity:0.8}}>Click a name chip in the sidebar to temporarily hide it.</div></div>
-         </div>
-         <div style={{marginTop:20,textAlign:'center'}}><button onClick={onClose} className="btn btn-primary" style={{width:'100%',fontSize:'1rem',padding:12}}>Got it!</button></div>
-      </div>
-    </div>
-);
-
-const ImportModal = ({ onClose, onImport }) => {
-    const [text, setText] = useState(""); const fileInputRef = useRef(null);
-    const handleFileUpload = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (event) => { setText(event.target.result); }; reader.readAsText(file); };
-    const handleImport = () => { if (!text.trim()) return; const splitNames = text.split(/[\n,;]+/).map(n => n.trim()).filter(n => n.length > 0); if (splitNames.length > 0) onImport(splitNames); };
-    return (
-        <div className="modal-overlay">
-            <div className="modal" style={{maxWidth:500,textAlign:'left'}}>
-                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}><h2 style={{margin:0,fontSize:'1.5rem'}}>Import List</h2><button onClick={onClose} className="btn" style={{padding:4}}><Icons.X/></button></div>
-                 <p style={{fontSize:'0.9rem',opacity:0.8,marginBottom:12}}>Paste your list or upload a <b>.csv/.txt</b> file.</p>
-                 <div style={{marginBottom:16}}><input type="file" accept=".csv,.txt,.text" ref={fileInputRef} style={{display:'none'}} onChange={handleFileUpload}/><button onClick={() => fileInputRef.current.click()} className="btn" style={{width:'100%',justifyContent:'center',background:'rgba(128,128,128,0.1)',border:'1px dashed rgba(128,128,128,0.4)'}}><Icons.Folder /> Choose File</button></div>
-                 <textarea value={text} onChange={(e)=>setText(e.target.value)} className="textarea" placeholder="Paste names..." style={{minHeight:200,marginBottom:20}}/>
-                 <div style={{display:'flex',gap:12,justifyContent:'flex-end'}}><button onClick={onClose} className="btn" style={{background:'rgba(128,128,128,0.2)'}}>Cancel</button><button onClick={handleImport} className="btn" style={{background:'#7c3aed',color:'white'}}>Import</button></div>
-            </div>
-        </div>
-    );
-};
-
-// --- EDIT CONCEPTS MODAL ---
-const ConceptModal = ({ concepts, onClose, onSave }) => {
-    const [text, setText] = useState(concepts.join('\n'));
-    const handleSave = () => {
-        const split = text.split(/[\n,;]+/).map(n => n.trim()).filter(n => n.length > 0);
-        if (split.length > 0) onSave(split);
-        onClose();
-    };
-    return (
-        <div className="modal-overlay">
-            <div className="modal" style={{maxWidth:500,textAlign:'left'}}>
-                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}><h2 style={{margin:0,fontSize:'1.5rem'}}>Edit Concepts</h2><button onClick={onClose} className="btn" style={{padding:4}}><Icons.X/></button></div>
-                 <p style={{fontSize:'0.9rem',opacity:0.8,marginBottom:12}}>Enter items for the 2nd wheel (e.g., questions, prizes, or taxonomy levels).</p>
-                 <textarea value={text} onChange={(e)=>setText(e.target.value)} className="textarea" placeholder="Item 1&#10;Item 2..." style={{minHeight:200,marginBottom:20}}/>
-                 <div style={{display:'flex',gap:12,justifyContent:'flex-end'}}><button onClick={onClose} className="btn" style={{background:'rgba(128,128,128,0.2)'}}>Cancel</button><button onClick={handleSave} className="btn" style={{background:'#7c3aed',color:'white'}}>Save Changes</button></div>
-            </div>
-        </div>
-    );
-};
-
 // --- 4. MAIN APP ---
 export default function App() {
   const [names, setNames] = useState(defaultNames); const [inputText, setInputText] = useState(defaultNames.join('\n'));
@@ -267,81 +10,116 @@ export default function App() {
   const [hubImage, setHubImage] = useState(null); const [showHelp, setShowHelp] = useState(false);
   const [showImport, setShowImport] = useState(false); const [showGroups, setShowGroups] = useState(false);
   
-  // Advanced State
-  const [hiddenNames, setHiddenNames] = useState([]); // ABSENT TOGGLE
-  const [concepts, setConcepts] = useState(defaultConcepts); // CUSTOM CONCEPTS
-  const [showConceptEdit, setShowConceptEdit] = useState(false);
+  // Game Modes
   const [battleMode, setBattleMode] = useState(false);
   const [battleStage, setBattleStage] = useState('idle');
   const [battleContestants, setBattleContestants] = useState([null, null]);
+  
+  // Bloom's Mode: 'off', 'solo' (Bloom's Only), 'dual' (Name + Bloom's)
   const [bloomMode, setBloomMode] = useState('off'); 
   const [bloomWinner, setBloomWinner] = useState(null);
+
+  // Scoreboard State
   const [activeTeams, setActiveTeams] = useState([]); const [teamScores, setTeamScores] = useState([]);
   
   const fileInputRef = useRef(null); 
-  const canvasRef = useRef(null); const canvasRef2 = useRef(null);
-  const confettiCanvasRef = useRef(null); const containerRef = useRef(null); const audioCtxRef = useRef(null); 
-  const rotationRef = useRef(0); const rotationRef2 = useRef(0); 
-  const velocityRef = useRef(0); const velocityRef2 = useRef(0);
-  const lastTickRef = useRef(0); const isSpinningRef = useRef(false); 
-  const pointerRef = useRef(0); const pointerRef2 = useRef(0); 
+  const canvasRef = useRef(null); // Left Wheel (Students or Bloom Solo)
+  const canvasRef2 = useRef(null); // Right Wheel (Bloom Dual)
+  const confettiCanvasRef = useRef(null);
+  const containerRef = useRef(null); const audioCtxRef = useRef(null); 
+  
+  // Rotation Refs
+  const rotationRef = useRef(0);
+  const rotationRef2 = useRef(0); // Bloom's Rotation
+  const velocityRef = useRef(0); 
+  const velocityRef2 = useRef(0); // Bloom's Velocity
+  const lastTickRef = useRef(0); 
+  const isSpinningRef = useRef(false); 
+  const pointerRef = useRef(0);
+  const pointerRef2 = useRef(0); 
 
   const theme = THEMES[currentThemeId];
-  // Calculate active names (exclude hidden)
-  const activeNames = useMemo(() => names.filter(n => !hiddenNames.includes(n)), [names, hiddenNames]);
 
   useEffect(() => { const saved = localStorage.getItem('spinner_lists'); if(saved) setSavedLists(JSON.parse(saved)); }, []);
   const saveList = () => { if(!newListName.trim())return; const u={...savedLists,[newListName]:names}; setSavedLists(u); localStorage.setItem('spinner_lists',JSON.stringify(u)); setNewListName(""); };
-  const loadList = (k) => { if(savedLists[k]) { setNames(savedLists[k]); setInputText(savedLists[k].join('\n')); setHiddenNames([]); } };
+  const loadList = (k) => { if(savedLists[k]) { setNames(savedLists[k]); setInputText(savedLists[k].join('\n')); } };
   const deleteList = (k) => { const u={...savedLists}; delete u[k]; setSavedLists(u); localStorage.setItem('spinner_lists',JSON.stringify(u)); };
   const updateNames = (t) => { setInputText(t); setNames(t.split('\n').filter(n=>n.trim())); };
-  const performImport = (l) => { setNames(l); setInputText(l.join('\n')); setShowImport(false); setHiddenNames([]); };
-  const toggleHidden = (n) => { setHiddenNames(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n]); };
+  const performImport = (l) => { setNames(l); setInputText(l.join('\n')); setShowImport(false); };
   const shuffleNames = () => { const s=[...names].sort(()=>Math.random()-0.5); setInputText(s.join('\n')); setNames(s); };
   const removeWinner = () => { if(!winner)return; const n=names.filter(x=>x!==winner); setInputText(n.join('\n')); setNames(n); setWinner(null); setBloomWinner(null); };
-  const handleImageUpload = (e) => { const f=e.target.files[0]; if(f){ const r=new FileReader(); r.onload=(evt)=>{ const i=new Image(); i.onload=()=>{setHubImage(i); if(canvasRef.current)drawWheel(canvasRef.current, bloomMode === 'solo' ? concepts : activeNames, rotationRef.current, pointerRef.current, mysteryMode);}; i.src=evt.target.result; }; r.readAsDataURL(f); } };
+  const handleImageUpload = (e) => { const f=e.target.files[0]; if(f){ const r=new FileReader(); r.onload=(evt)=>{ const i=new Image(); i.onload=()=>{setHubImage(i); if(canvasRef.current)drawWheel(canvasRef.current, bloomMode === 'solo' ? bloomsLevels : names, rotationRef.current, pointerRef.current, mysteryMode);}; i.src=evt.target.result; }; r.readAsDataURL(f); } };
   const handleStartScoring = (g) => { setActiveTeams(g); setTeamScores(new Array(g.length).fill(0)); setShowGroups(false); };
   const handleUpdateScore = (i,c) => { const n=[...teamScores]; n[i]+=c; setTeamScores(n); if(soundEnabled) playSound('tick', audioCtxRef, soundTheme); };
-  const toggleBloomMode = () => { setBattleMode(false); if (bloomMode === 'off') setBloomMode('solo'); else if (bloomMode === 'solo') setBloomMode('dual'); else setBloomMode('off'); };
 
-  // Draw Logic
+  // --- CYCLE BLOOM MODES ---
+  const toggleBloomMode = () => {
+      setBattleMode(false);
+      if (bloomMode === 'off') setBloomMode('solo');
+      else if (bloomMode === 'solo') setBloomMode('dual');
+      else setBloomMode('off');
+  };
+
+  // --- GENERIC DRAW FUNCTION ---
   const drawWheel = (canvas, items, currentRotation, currentPointer, isMystery) => {
     if (!canvas) return; 
     let size = 300; 
+    // Resize based on mode
     const isDual = bloomMode === 'dual';
-    if (isDual && containerRef.current && containerRef.current.offsetWidth > 0) size = Math.min(containerRef.current.offsetWidth / 2.2, containerRef.current.offsetHeight) * 0.95;
-    else if (containerRef.current && containerRef.current.offsetWidth > 0) size = Math.min(containerRef.current.offsetWidth, containerRef.current.offsetHeight) * 0.95;
+    if (isDual && containerRef.current && containerRef.current.offsetWidth > 0) {
+        size = Math.min(containerRef.current.offsetWidth / 2.2, containerRef.current.offsetHeight) * 0.95;
+    } else if (containerRef.current && containerRef.current.offsetWidth > 0) {
+        size = Math.min(containerRef.current.offsetWidth, containerRef.current.offsetHeight) * 0.95;
+    }
     if (size < 50) size = 300;
     if (canvas.width !== size || canvas.height !== size) { canvas.width = size; canvas.height = size; }
+    
     const ctx = canvas.getContext('2d'); if (!ctx) return;
     const { width, height } = canvas; const cx = width / 2; const cy = height / 2; const radius = Math.max(0, width / 2 - 25);
     ctx.clearRect(0, 0, width, height);
-    if (items.length === 0) { ctx.fillStyle = theme.text; ctx.font = "16px sans-serif"; ctx.textAlign = "center"; ctx.fillText("No items!", cx, cy); return; }
+    
+    if (items.length === 0) { ctx.fillStyle = theme.text; ctx.font = "16px sans-serif"; ctx.textAlign = "center"; ctx.fillText("Add items!", cx, cy); return; }
+    
     items.forEach((name, i) => {
       const start = i * (2 * Math.PI / items.length) + currentRotation; const end = (i + 1) * (2 * Math.PI / items.length) + currentRotation;
       ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, radius, start, end); ctx.fillStyle = theme.colors[i % theme.colors.length]; ctx.fill();
       const g = ctx.createRadialGradient(cx, cy, radius * 0.2, cx, cy, radius); g.addColorStop(0, 'rgba(255,255,255,0.15)'); g.addColorStop(1, 'rgba(0,0,0,0.15)'); ctx.fillStyle = g; ctx.fill();
       ctx.strokeStyle = theme.bg; ctx.lineWidth = 2; ctx.stroke();
       ctx.save(); ctx.translate(cx, cy); ctx.rotate(start + (end - start) / 2); ctx.textAlign = "right"; ctx.fillStyle = "#fff"; ctx.font = `bold ${Math.max(12, Math.min(24, 250 / items.length))}px sans-serif`; ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 4; 
-      const shouldHide = isMystery && isSpinningRef.current && items === activeNames;
+      // Only hide text if mystery mode AND it's the student wheel (not bloom's)
+      const shouldHide = isMystery && isSpinningRef.current && items === names;
       ctx.fillText(shouldHide ? "?" : name.substring(0, 18), radius - 20, 6); ctx.restore();
     });
     items.forEach((_, i) => { const a = i * (2 * Math.PI / items.length) + currentRotation; ctx.save(); ctx.translate(cx, cy); ctx.rotate(a); ctx.beginPath(); ctx.arc(radius - 2, 0, 4, 0, Math.PI * 2); const pg = ctx.createRadialGradient(radius - 5, -2, 0, radius - 2, 0, 6); pg.addColorStop(0, '#ffffff'); pg.addColorStop(1, '#64748b'); ctx.fillStyle = pg; ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 3; ctx.fill(); ctx.restore(); });
+    
     ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, 35, 0, 2 * Math.PI); ctx.closePath(); ctx.clip();
-    if (hubImage && items === activeNames) { ctx.drawImage(hubImage, cx - 35, cy - 35, 70, 70); } else { const hg = ctx.createRadialGradient(cx, cy, 10, cx, cy, 35); hg.addColorStop(0, '#fef3c7'); hg.addColorStop(1, '#b45309'); ctx.fillStyle = hg; ctx.fill(); ctx.save(); ctx.translate(cx, cy); ctx.beginPath(); for (let i = 0; i < 5; i++) { ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * 18, -Math.sin((18 + i * 72) * Math.PI / 180) * 18); ctx.lineTo(Math.cos((54 + i * 72) * Math.PI / 180) * 8, -Math.sin((54 + i * 72) * Math.PI / 180) * 8); } ctx.closePath(); ctx.fillStyle = "#fff"; ctx.shadowColor = "rgba(180, 83, 9, 0.5)"; ctx.shadowBlur = 5; ctx.fill(); ctx.restore(); } ctx.restore();
+    if (hubImage && items === names) { ctx.drawImage(hubImage, cx - 35, cy - 35, 70, 70); } else { const hg = ctx.createRadialGradient(cx, cy, 10, cx, cy, 35); hg.addColorStop(0, '#fef3c7'); hg.addColorStop(1, '#b45309'); ctx.fillStyle = hg; ctx.fill(); ctx.save(); ctx.translate(cx, cy); ctx.beginPath(); for (let i = 0; i < 5; i++) { ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * 18, -Math.sin((18 + i * 72) * Math.PI / 180) * 18); ctx.lineTo(Math.cos((54 + i * 72) * Math.PI / 180) * 8, -Math.sin((54 + i * 72) * Math.PI / 180) * 8); } ctx.closePath(); ctx.fillStyle = "#fff"; ctx.shadowColor = "rgba(180, 83, 9, 0.5)"; ctx.shadowBlur = 5; ctx.fill(); ctx.restore(); } ctx.restore();
     ctx.beginPath(); ctx.arc(cx, cy, 35, 0, 2 * Math.PI); ctx.strokeStyle = "#b45309"; ctx.lineWidth = 4; ctx.stroke();
+    
     ctx.save(); ctx.translate(width - 10, cy); ctx.rotate(currentPointer); ctx.beginPath(); ctx.moveTo(0, -15); ctx.lineTo(-40, 0); ctx.lineTo(0, 15); ctx.closePath(); ctx.fillStyle = theme.text; ctx.shadowColor = "rgba(0,0,0,0.3)"; ctx.shadowBlur = 5; ctx.fill(); ctx.restore();
   };
 
   const spin = () => {
-    if (isSpinning || (bloomMode !== 'solo' && activeNames.length < 2)) return;
-    setWinner(null); setBloomWinner(null); 
-    if (battleMode && battleStage === 'idle') { setBattleStage('spinning1'); setBattleContestants([null, null]); }
+    if (isSpinning || (bloomMode !== 'solo' && names.length < 2)) return;
+    setWinner(null);
+    setBloomWinner(null); 
+    if (battleMode && battleStage === 'idle') {
+        setBattleStage('spinning1');
+        setBattleContestants([null, null]);
+    }
+    
     velocityRef.current = 0.4 + Math.random() * 0.4;
-    if (bloomMode === 'dual') velocityRef2.current = 0.4 + Math.random() * 0.3;
-    isSpinningRef.current = true; setIsSpinning(true);
+    
+    // In Dual Mode, spin second wheel too
+    if (bloomMode === 'dual') {
+        velocityRef2.current = 0.4 + Math.random() * 0.3;
+    }
+
+    isSpinningRef.current = true;
+    setIsSpinning(true);
   };
 
+  // --- ANIMATION LOOP ---
   useEffect(() => {
     if (!isSpinning) return;
     let af;
@@ -349,61 +127,110 @@ export default function App() {
         // --- 1. MAIN WHEEL PHYSICS ---
         pointerRef.current *= 0.85;
         if (velocityRef.current > 0.002) {
-            velocityRef.current *= 0.985; rotationRef.current += velocityRef.current;
+            velocityRef.current *= 0.985;
+            rotationRef.current += velocityRef.current;
             if (rotationRef.current >= Math.PI * 2) rotationRef.current -= Math.PI * 2;
             
             // Sound (Only if main wheel is spinning)
-            const currentList = bloomMode === 'solo' ? concepts : activeNames;
+            const currentList = bloomMode === 'solo' ? bloomsLevels : names;
             if (soundEnabled && currentList.length > 0) {
                  const slice = (2 * Math.PI) / currentList.length; const passed = Math.floor(rotationRef.current / slice);
                  if (passed !== lastTickRef.current) { playSound('tick', audioCtxRef, soundTheme); lastTickRef.current = passed; pointerRef.current = 0.3 + Math.random() * 0.1; }
             }
-        } else velocityRef.current = 0;
+        } else {
+            velocityRef.current = 0;
+        }
 
         // --- 2. DUAL WHEEL PHYSICS ---
         if (bloomMode === 'dual') {
             pointerRef2.current *= 0.85;
-            if (velocityRef2.current > 0.002) { velocityRef2.current *= 0.985; rotationRef2.current += velocityRef2.current; if (rotationRef2.current >= Math.PI * 2) rotationRef2.current -= Math.PI * 2; } 
-            else velocityRef2.current = 0;
+            if (velocityRef2.current > 0.002) {
+                velocityRef2.current *= 0.985;
+                rotationRef2.current += velocityRef2.current;
+                if (rotationRef2.current >= Math.PI * 2) rotationRef2.current -= Math.PI * 2;
+            } else {
+                velocityRef2.current = 0;
+            }
         }
 
         // --- 3. DRAW ---
-        const mainList = bloomMode === 'solo' ? concepts : activeNames;
+        const mainList = bloomMode === 'solo' ? bloomsLevels : names;
         drawWheel(canvasRef.current, mainList, rotationRef.current, pointerRef.current, mysteryMode);
-        if (bloomMode === 'dual') drawWheel(canvasRef2.current, concepts, rotationRef2.current, pointerRef2.current, false);
+        
+        if (bloomMode === 'dual') {
+            drawWheel(canvasRef2.current, bloomsLevels, rotationRef2.current, pointerRef2.current, false);
+        }
 
         // --- 4. CHECK FINISH ---
         if (velocityRef.current === 0 && (bloomMode !== 'dual' || velocityRef2.current === 0)) {
-            isSpinningRef.current = false; pointerRef.current = 0; pointerRef2.current = 0; setIsSpinning(false);
+            isSpinningRef.current = false; 
+            pointerRef.current = 0;
+            pointerRef2.current = 0;
+            setIsSpinning(false);
             
+            // Calc Main Winner
             let w = null;
-            if (mainList.length > 0) { const slice = (2 * Math.PI) / mainList.length; let p = (0 - rotationRef.current) % (2 * Math.PI); if (p < 0) p += 2 * Math.PI; const i = Math.floor(p / slice); if (i >= 0 && i < mainList.length) w = mainList[i]; }
-            
-            let bw = null;
-            if (bloomMode === 'dual') { const slice = (2 * Math.PI) / concepts.length; let p = (0 - rotationRef2.current) % (2 * Math.PI); if (p < 0) p += 2 * Math.PI; const i = Math.floor(p / slice); if (i >= 0 && i < concepts.length) bw = concepts[i]; }
+            if (mainList.length > 0) { 
+                const slice = (2 * Math.PI) / mainList.length; 
+                let p = (0 - rotationRef.current) % (2 * Math.PI); if (p < 0) p += 2 * Math.PI; 
+                const i = Math.floor(p / slice); if (i >= 0 && i < mainList.length) w = mainList[i]; 
+            }
 
-            if (battleMode && battleStage === 'spinning2' && w === battleContestants[0]) { velocityRef.current = 0.05 + Math.random() * 0.05; af = requestAnimationFrame(animate); return; }
+            // Calc Dual Winner
+            let bw = null;
+            if (bloomMode === 'dual') {
+                const slice = (2 * Math.PI) / bloomsLevels.length;
+                let p = (0 - rotationRef2.current) % (2 * Math.PI); if (p < 0) p += 2 * Math.PI; 
+                const i = Math.floor(p / slice); if (i >= 0 && i < bloomsLevels.length) bw = bloomsLevels[i]; 
+            }
+
+            // Battle Logic (Self-Match Fix)
+            if (battleMode && battleStage === 'spinning2' && w === battleContestants[0]) {
+                velocityRef.current = 0.05 + Math.random() * 0.05; 
+                af = requestAnimationFrame(animate);
+                return;
+            }
 
             if (battleMode) {
-                if (battleStage === 'spinning1') { setBattleContestants([w, null]); setBattleStage('waiting'); if (soundEnabled) playSound('tick', audioCtxRef, soundTheme); setTimeout(() => { setBattleStage('spinning2'); velocityRef.current = 0.4 + Math.random() * 0.4; isSpinningRef.current = true; setIsSpinning(true); }, 1000); } 
-                else if (battleStage === 'spinning2') { setBattleContestants(prev => [prev[0], w]); setBattleStage('finished'); if (soundEnabled) playSound('win', audioCtxRef, soundTheme); FireConfetti(confettiCanvasRef.current); }
+                if (battleStage === 'spinning1') {
+                    setBattleContestants([w, null]); setBattleStage('waiting');
+                    if (soundEnabled) playSound('tick', audioCtxRef, soundTheme);
+                    setTimeout(() => {
+                        setBattleStage('spinning2'); velocityRef.current = 0.4 + Math.random() * 0.4; isSpinningRef.current = true; setIsSpinning(true);
+                    }, 1000);
+                } else if (battleStage === 'spinning2') {
+                    setBattleContestants(prev => [prev[0], w]); setBattleStage('finished');
+                    if (soundEnabled) playSound('win', audioCtxRef, soundTheme); FireConfetti(confettiCanvasRef.current);
+                }
             } else if (w) {
-                setWinner(w); if (bw) setBloomWinner(bw);
-                if (bloomMode !== 'solo') { const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); setWinnerHistory(p => [{name: w, time: ts}, ...p].slice(0, 10)); }
-                if (soundEnabled) playSound('win', audioCtxRef, soundTheme); setTimeout(() => FireConfetti(confettiCanvasRef.current), 10);
+                setWinner(w);
+                if (bw) setBloomWinner(bw); // Set Dual Winner
+                
+                // Add to history (only if it's a student)
+                if (bloomMode !== 'solo') {
+                    const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    setWinnerHistory(p => [{name: w, time: ts}, ...p].slice(0, 10));
+                }
+                
+                if (soundEnabled) playSound('win', audioCtxRef, soundTheme);
+                setTimeout(() => FireConfetti(confettiCanvasRef.current), 10);
             }
-        } else af = requestAnimationFrame(animate);
+        } else {
+            af = requestAnimationFrame(animate);
+        }
     };
-    animate(); return () => cancelAnimationFrame(af);
-  }, [isSpinning, activeNames, hiddenNames, soundEnabled, mysteryMode, soundTheme, battleMode, battleStage, battleContestants, bloomMode, concepts]);
+    animate();
+    return () => cancelAnimationFrame(af);
+  }, [isSpinning, names, soundEnabled, mysteryMode, soundTheme, battleMode, battleStage, battleContestants, bloomMode]);
 
+  // Redraw on resize/mode change
   useEffect(() => { 
       if (!isSpinning) {
-          const mainList = bloomMode === 'solo' ? concepts : activeNames;
+          const mainList = bloomMode === 'solo' ? bloomsLevels : names;
           drawWheel(canvasRef.current, mainList, rotationRef.current, pointerRef.current, mysteryMode);
-          if (bloomMode === 'dual') drawWheel(canvasRef2.current, concepts, rotationRef2.current, pointerRef2.current, false);
+          if (bloomMode === 'dual') drawWheel(canvasRef2.current, bloomsLevels, rotationRef2.current, pointerRef2.current, false);
       }
-  }, [names, hiddenNames, currentThemeId, mysteryMode, isSpinning, hubImage, bloomMode, concepts, activeNames]);
+  }, [names, currentThemeId, mysteryMode, isSpinning, hubImage, bloomMode]);
 
   useEffect(() => { const k = (e) => { if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return; if (e.code === 'Space') { e.preventDefault(); if (winner) setWinner(null); else if (battleStage === 'finished') setBattleStage('idle'); else if (!isSpinning) spin(); } if (e.code === 'Escape') { if (winner) setWinner(null); else if (battleStage === 'finished') setBattleStage('idle'); else { setShowHelp(false); setShowImport(false); setShowGroups(false); setProjectorMode(false); } } }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [winner, isSpinning, projectorMode, names, showHelp, showImport, showGroups, battleStage]);
 
@@ -415,7 +242,7 @@ export default function App() {
 
   const styles = `
     body { margin: 0; overflow: hidden; -webkit-tap-highlight-color: transparent; }
-    .app { display: flex; height: 100vh; font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg-color); color: var(--text-color); transition: background-color 0.3s ease; user-select: none; background-image: ${theme.pattern || 'none'}; }
+    .app { display: flex; height: 100vh; font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg-color); color: var(--text-color); transition: background-color 0.3s ease; user-select: none; }
     .sidebar { width: 320px; background-color: var(--sidebar-bg); border-right: 1px solid rgba(128,128,128,0.2); display: flex; flex-direction: column; z-index: 20; transition: all 0.3s; }
     .sidebar.projector-hidden { width: 0; opacity: 0; padding: 0; overflow: hidden; border: none; }
     .sidebar.closed { transform: translateX(-100%); position: fixed; height: 100%; }
@@ -442,9 +269,6 @@ export default function App() {
     .theme-btn { padding: 10px; border: 1px solid rgba(128,128,128,0.2); border-radius: 6px; text-align: left; font-size: 0.85rem; cursor: pointer; transition: 0.2s; }
     .theme-btn:hover { border-color: var(--accent-color); }
     .mobile-toggle { position: absolute; top: 16px; left: 16px; z-index: 30; background: var(--sidebar-bg); border-radius: 50%; padding: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); color: var(--text-color); }
-    .chip { font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; cursor: pointer; border: 1px solid rgba(128,128,128,0.2); transition: 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
-    .chip:hover { background: rgba(128,128,128,0.1); }
-    .chip.hidden { opacity: 0.4; text-decoration: line-through; }
     @media (min-width: 769px) { .sidebar { transform: translateX(0) !important; position: relative !important; height: 100% !important; } .mobile-toggle { display: none; } }
   `;
 
@@ -477,43 +301,24 @@ export default function App() {
                         </button>
 
                         {/* TOGGLE: BLOOM'S MODE (CYCLES) */}
-                        <div style={{display:'flex', flex: '1 1 40%', gap: 4}}>
-                            <button onClick={toggleBloomMode} className="btn" style={{background: bloomMode !== 'off' ? '#3b82f6' : 'rgba(128,128,128,0.1)', color: bloomMode !== 'off' ? '#fff' : 'inherit', flex: 1}}>
-                               <Icons.Brain/> {bloomMode === 'solo' ? "Concept" : bloomMode === 'dual' ? "Name+" : "Concept"}
-                            </button>
-                            <button onClick={() => setShowConceptEdit(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)', padding: 8}} title="Edit Concepts"><Icons.Edit/></button>
-                        </div>
+                        <button onClick={toggleBloomMode} className="btn" style={{background: bloomMode !== 'off' ? '#3b82f6' : 'rgba(128,128,128,0.1)', color: bloomMode !== 'off' ? '#fff' : 'inherit', flex:'1 1 40%'}}>
+                           <Icons.Brain/> {bloomMode === 'solo' ? "Bloom's" : bloomMode === 'dual' ? "Name+" : "Bloom's"}
+                        </button>
 
                         <button onClick={() => setShowImport(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)', flex:'1 1 40%'}}><Icons.Clipboard/> Import</button>
                         <button onClick={() => setShowGroups(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)', flex:'1 1 40%'}}><Icons.Users/> Teams</button>
                         <button onClick={() => setShowTimer(!showTimer)} className="btn" style={{background: showTimer ? theme.accent : 'rgba(128,128,128,0.1)', color: showTimer ? '#fff' : 'inherit', flex:'1 1 40%'}}><Icons.Clock/> Timer</button>
                     </div>
                 </div>
-                
-                <div>
-                    <span className="section-title">Names ({activeNames.length}/{names.length})</span>
-                    <textarea value={inputText} onChange={(e) => updateNames(e.target.value)} className="textarea" placeholder="Enter names..." style={{height: 120, minHeight: 100}}/>
-                    
-                    {/* ABSENT TOGGLES */}
-                    <div style={{display:'flex', flexWrap:'wrap', gap: 4, marginTop: 8}}>
-                        {names.slice(0, 50).map((n, i) => (
-                            <div key={i} onClick={() => toggleHidden(n)} className={`chip ${hiddenNames.includes(n) ? 'hidden' : ''}`}>
-                                {n}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-                
+                <div><span className="section-title">Names ({names.length})</span><textarea value={inputText} onChange={(e) => updateNames(e.target.value)} className="textarea" placeholder="Enter names..."/></div>
                 <div style={{marginTop: 8}}>
                     <span className="section-title">Theme</span>
                     <div className="theme-grid">{Object.entries(THEMES).map(([id, t]) => (<button key={id} onClick={() => setCurrentThemeId(id)} className="theme-btn" style={{background: currentThemeId === id ? theme.accent : 'transparent', color: currentThemeId === id ? '#fff' : 'inherit', borderColor: currentThemeId === id ? theme.accent : 'rgba(128,128,128,0.2)'}}><span style={{width:10, height:10, borderRadius:'50%', background: t.colors[1], display:'inline-block', marginRight: 6}}></span>{t.name}</button>))}</div>
                 </div>
-                
                 <div style={{marginTop: 20}}>
                      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 8}}><span className="section-title">Sound Pack</span><button onClick={() => setSoundEnabled(!soundEnabled)} className="btn" style={{padding: 4}}> {soundEnabled ? <Icons.Volume2/> : <Icons.VolumeX/>} </button></div>
                      <div style={{display:'flex', gap: 4, background:'rgba(128,128,128,0.1)', padding: 4, borderRadius: 8}}>{['standard', 'arcade', 'spooky'].map(s => (<button key={s} onClick={() => setSoundTheme(s)} style={{flex: 1, padding: '6px 0', border: 'none', borderRadius: 4, background: soundTheme === s ? theme.accent : 'transparent', color: soundTheme === s ? '#fff' : 'inherit', fontSize: '0.8rem', textTransform: 'capitalize', cursor: 'pointer', fontWeight: 600}}>{s}</button>))}</div>
                 </div>
-                
                 <div style={{marginTop: 20}}>
                      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 8}}><span className="section-title">Session History</span>{winnerHistory.length > 0 && <button onClick={() => setWinnerHistory([])} style={{fontSize: '0.7rem', color: '#ef4444', background: 'none', border:'none', cursor:'pointer'}}>Clear</button>}</div>
                      <div style={{maxHeight: 120, overflowY: 'auto', background: 'rgba(128,128,128,0.05)', borderRadius: 8, padding: 8}}>{winnerHistory.length === 0 && <div style={{fontSize: '0.8rem', opacity: 0.5, fontStyle: 'italic', textAlign: 'center'}}>No winners yet.</div>}{winnerHistory.map((item, i) => (<div key={i} style={{fontSize: '0.85rem', display:'flex', justifyContent:'space-between', padding:'4px 0', borderBottom: '1px solid rgba(128,128,128,0.1)'}}><span>{item.name}</span><span style={{opacity: 0.5, fontSize: '0.75rem'}}>{item.time}</span></div>))}</div>
@@ -527,7 +332,7 @@ export default function App() {
             {showTimer && <Timer audioCtx={audioCtxRef} onClose={() => setShowTimer(false)} />}
             {activeTeams.length > 0 && <Scoreboard teams={activeTeams} scores={teamScores} onUpdateScore={handleUpdateScore} onClose={() => setActiveTeams([])} />}
 
-            {/* BATTLE DISPLAY */}
+            {/* BATTLE DISPLAY (SIDES) */}
             {battleMode && (
                 <>
                     <div style={{position: 'absolute', top: '50%', left: '20px', transform: 'translateY(-50%)', zIndex: 10, transition: 'all 0.5s', opacity: battleContestants[0] ? 1 : 0.3}}>
@@ -547,31 +352,38 @@ export default function App() {
 
             <div ref={containerRef} className="wheel-container">
                 <canvas ref={canvasRef} onClick={spin} style={{maxWidth: '100%', maxHeight: showTimer ? '55vh' : '70vh', cursor: 'pointer', filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.3))', transition: 'max-height 0.3s ease'}}/>
+                
+                {/* BLOOM'S WHEEL (SECOND CANVAS) */}
                 {bloomMode === 'dual' && (
                     <canvas ref={canvasRef2} onClick={spin} style={{maxWidth: '100%', maxHeight: showTimer ? '55vh' : '70vh', cursor: 'pointer', filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.3))', transition: 'max-height 0.3s ease'}}/>
                 )}
             </div>
             
-            <button onClick={spin} disabled={isSpinning || (bloomMode !== 'solo' && activeNames.length < 2)} className="btn btn-primary">
+            <button onClick={spin} disabled={isSpinning || (bloomMode !== 'solo' && names.length < 2)} className="btn btn-primary">
                 {isSpinning ? (battleMode ? (battleStage === 'waiting' ? 'NEXT...' : 'SPINNING...') : 'SPINNING...') : (battleMode ? 'BATTLE SPIN!' : 'SPIN!')}
             </button>
         </div>
 
-        {/* MODALS */}
+        {/* BATTLE MODAL */}
         {battleMode && battleStage === 'finished' && (
              <div className="modal-overlay">
                 <div className="modal" style={{background: 'linear-gradient(135deg, #1e293b, #0f172a)', border: '2px solid rgba(255,255,255,0.1)'}}>
                     <h2 style={{margin: '0 0 20px 0', fontSize: '3rem', fontStyle: 'italic', fontWeight: 900, background: '-webkit-linear-gradient(#fcd34d, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}>VS</h2>
                     <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, marginBottom: 30}}>
-                        <div style={{textAlign:'center'}}><div style={{fontSize:'2rem', fontWeight:800, color: theme.colors[0]}}>{battleContestants[0]}</div></div>
+                        <div style={{textAlign:'center'}}>
+                            <div style={{fontSize:'2rem', fontWeight:800, color: theme.colors[0]}}>{battleContestants[0]}</div>
+                        </div>
                         <div style={{width: 2, height: 60, background:'rgba(255,255,255,0.2)'}}></div>
-                        <div style={{textAlign:'center'}}><div style={{fontSize:'2rem', fontWeight:800, color: theme.colors[1]}}>{battleContestants[1]}</div></div>
+                        <div style={{textAlign:'center'}}>
+                            <div style={{fontSize:'2rem', fontWeight:800, color: theme.colors[1]}}>{battleContestants[1]}</div>
+                        </div>
                     </div>
                     <button onClick={() => setBattleStage('idle')} className="btn btn-primary" style={{width: '100%'}}>New Battle</button>
                 </div>
              </div>
         )}
 
+        {/* STANDARD WINNER MODAL */}
         {winner && !battleMode && (
             <div className="modal-overlay">
                 <div className="modal">
@@ -579,6 +391,7 @@ export default function App() {
                     <h2 style={{margin:0, opacity: 0.6}}>The winner is</h2>
                     <div className="winner-name">{winner}</div>
                     
+                    {/* BLOOM RESULT */}
                     {bloomMode === 'dual' && bloomWinner && (
                         <div style={{background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', padding: '10px', borderRadius: 8, marginTop: -10, marginBottom: 20, fontWeight: 700}}>
                             <div style={{fontSize: '0.8rem', opacity: 0.8, textTransform:'uppercase', letterSpacing:1}}>Challenge</div>
@@ -596,8 +409,7 @@ export default function App() {
 
         {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
         {showImport && <ImportModal onClose={() => setShowImport(false)} onImport={performImport} />}
-        {showGroups && <GroupMakerModal names={activeNames} onClose={() => setShowGroups(false)} onStartScoring={handleStartScoring} />}
-        {showConceptEdit && <ConceptModal concepts={concepts} onClose={() => setShowConceptEdit(false)} onSave={setConcepts} />}
+        {showGroups && <GroupMakerModal names={names} onClose={() => setShowGroups(false)} onStartScoring={handleStartScoring} />}
     </div>
   );
 }
