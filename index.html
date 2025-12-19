@@ -586,6 +586,58 @@ const HelpModal = ({ onClose }) => (
           
           // HEATMAP STATE
 // --- ANIMATION & UTILITIES STATE ---
+// --- NOISE METER STATE ---
+const [meterMinimized, setMeterMinimized] = useState(false); // <--- Add this
+          const [showNoiseMeter, setShowNoiseMeter] = useState(false);
+          const [meterActive, setMeterActive] = useState(false);
+          const [volume, setVolume] = useState(0);
+          const audioCtxRefMeter = useRef(null);
+          const analyserRef = useRef(null);
+          const sourceRef = useRef(null);
+
+const toggleMic = async () => {
+              // 1. Stop if already active
+              if (meterActive) {
+                  if(audioCtxRefMeter.current) audioCtxRefMeter.current.close();
+                  setMeterActive(false);
+                  setVolume(0);
+                  return;
+              }
+              // 2. Start Listening
+              try {
+                  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                  audioCtxRefMeter.current = new (window.AudioContext || window.webkitAudioContext)();
+                  
+                  // FORCE RESUME (The Fix)
+                  if (audioCtxRefMeter.current.state === 'suspended') {
+                      await audioCtxRefMeter.current.resume();
+                  }
+
+                  analyserRef.current = audioCtxRefMeter.current.createAnalyser();
+                  analyserRef.current.fftSize = 256;
+                  sourceRef.current = audioCtxRefMeter.current.createMediaStreamSource(stream);
+                  sourceRef.current.connect(analyserRef.current);
+                  setMeterActive(true);
+                  checkVolumeLoop(); // Start the visual loop
+              } catch (err) { 
+                  alert("Could not access microphone. Please check permissions."); 
+              }
+          };
+
+          const checkVolumeLoop = () => {
+              if (audioCtxRefMeter.current && audioCtxRefMeter.current.state === 'running') {
+                  const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+                  analyserRef.current.getByteFrequencyData(dataArray);
+                  
+                  // Calculate average volume level (0-100 scale approx)
+                  const avg = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                  const adjusted = Math.min(100, Math.round(avg * 1.5)); // 1.5x boost
+                  
+                  setVolume(adjusted);
+                  requestAnimationFrame(checkVolumeLoop);
+              }
+          };
+const [billboardMode, setBillboardMode] = useState('text'); // 'text' or 'qr'
 const [billboardText, setBillboardText] = useState("");
 // STICKY NOTES STATE
           const [stickies, setStickies] = useState([]);
@@ -673,6 +725,40 @@ const [billboardText, setBillboardText] = useState("");
           // --- QUICK POLL STATE ---
           const [showPoll, setShowPoll] = useState(false);
           const [pollCounts, setPollCounts] = useState({ A: 0, B: 0, C: 0, D: 0 });
+// --- PRESENTATION LINEUP STATE ---
+          const [showLineup, setShowLineup] = useState(false);
+          const [lineupList, setLineupList] = useState([]);
+          const [isLineupAnimating, setIsLineupAnimating] = useState(false);
+          
+          const generateLineup = () => {
+              const currentStudents = activeNames.length > 0 ? activeNames : names;
+              
+              // Start Animation
+              setShowLineup(true);
+              setIsLineupAnimating(true);
+              
+              let count = 0;
+              const maxTicks = 15; // How many times it shuffles before stopping
+              
+              const interval = setInterval(() => {
+                  // Create a temporary random shuffle for visual effect
+                  const tempShuffle = [...currentStudents].sort(() => Math.random() - 0.5);
+                  setLineupList(tempShuffle);
+                  
+                  // Play tick sound
+                  if(soundEnabled) playSound('tick', audioCtxRef, soundTheme);
+                  
+                  count++;
+                  if (count >= maxTicks) {
+                      clearInterval(interval);
+                      // Final lock-in
+                      const finalShuffle = [...currentStudents].sort(() => Math.random() - 0.5);
+                      setLineupList(finalShuffle);
+                      setIsLineupAnimating(false);
+                      if(soundEnabled) playSound('win', audioCtxRef, soundTheme);
+                  }
+              }, 80); // Speed of the shuffle (ms)
+          };
           const updatePoll = (key, delta) => {
               setPollCounts(prev => ({ ...prev, [key]: Math.max(0, prev[key] + delta) }));
           };
@@ -1136,17 +1222,17 @@ const removeWinner = () => {
                 <canvas ref={confettiCanvasRef} style={{position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 50}} />
                 <button onClick={() => setShowSettings(true)} className="mobile-toggle btn"><Icons.Settings /></button>
 
-                <div className={`sidebar ${showSettings ? 'open' 
-                : 'closed'} ${projectorMode ? 'projector-hidden' : ''}`}>
+<div className={`sidebar ${showSettings ? 'open' : 'closed'} ${projectorMode ? 'projector-hidden' : ''}`}>
                     <div style={{padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(128,128,128,0.1)'}}>
                          <h1 style={{margin:0, fontSize: '1.25rem', fontWeight:800, background: `linear-gradient(to right, ${theme.accent}, ${theme.colors[0]})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}>Swiss Army Spinner</h1>
-                       
-                          <div style={{display:'flex', gap: 4}}>
+                         
+                         {/* RESTORED HELP & PROJECTOR BUTTONS */}
+                         <div style={{display:'flex', gap: 4}}>
                             <button className="btn" onClick={() => setShowHelp(true)} title="Help" style={{padding: 8}}><Icons.HelpCircle /></button>
                             <button className="btn" onClick={() => setProjectorMode(true)} title="Projector Mode" style={{padding: 8}}><Icons.Maximize /></button>
-                      
-                          </div>
+                         </div>
                     </div>
+                    
                     <div className="input-area">
                         
 {/* CLASS MANAGER */}
@@ -1338,10 +1424,12 @@ const removeWinner = () => {
                                 </div>
 
                                 {/* UTILITIES */}
+                                <button onClick={() => setShowNoiseMeter(!showNoiseMeter)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>🎤 Noise Meter</button>
                                 <button onClick={() => setShowImport(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}><Icons.Clipboard/> Import</button>
                                 <button onClick={() => setShowGroups(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}><Icons.Users/> Teams</button>
                                 <button onClick={() => setShowBrainBreak(!showBrainBreak)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>⚡ Strategy</button>
                                 <button onClick={() => setShowPoll(!showPoll)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>📊 Poll</button>
+                                <button onClick={generateLineup} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>📜 Lineup</button>
                                 
                                 {/* TIMER (Full Width) */}
                                 <button onClick={() => setShowTimer(!showTimer)} className="btn" 
@@ -1515,8 +1603,25 @@ const removeWinner = () => {
                                     lineHeight: 1.2,
                                     whiteSpace: 'pre-wrap'
                                 }}>
-                                    {billboardText || "Class Message"}
-                                </div>
+{billboardMode === 'qr' ? (
+    <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:10}}>
+        <img 
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(billboardText || "https://google.com")}`} 
+            alt="QR Code" 
+            style={{borderRadius: 8, border: '4px solid white'}}
+        />
+        <div style={{fontSize:'1rem', opacity:0.8, wordBreak:'break-all', maxWidth: 300}}>{billboardText}</div>
+    </div>
+) : (
+    <div style={{
+        fontSize: 'clamp(2rem, 5vw, 4rem)', 
+        fontWeight: 800, 
+        lineHeight: 1.2,
+        whiteSpace: 'pre-wrap'
+    }}>
+        {billboardText || "Class Message"}
+    </div>
+)}                                </div>
                             </div>
                         </DraggableBox>
                     )}
@@ -1734,7 +1839,89 @@ const removeWinner = () => {
                             </div>
                         </DraggableBox>
                     )}
-                    
+
+{/* NOISE METER WIDGET (Expandable) */}
+                    {showNoiseMeter && (
+                        <DraggableBox x={50} y={150} style={{zIndex: 55}}>
+                            <div style={{
+                                background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(10px)',
+                                padding: meterMinimized ? '12px 8px' : '20px 10px', 
+                                borderRadius: 24, 
+                                width: meterMinimized ? 70 : 100, /* Shrinks width */
+                                boxShadow: '0 10px 30px rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                                transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)' /* Smooth bounce */
+                            }}>
+                                {/* Header Controls */}
+                                <div style={{display:'flex', justifyContent:'space-between', width:'100%', marginBottom: meterMinimized ? 8 : 10, padding:'0 4px'}}>
+                                    {/* MINIMIZE / EXPAND BUTTON */}
+                                    <button 
+                                        onClick={() => setMeterMinimized(!meterMinimized)} 
+                                        style={{background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding: 2}}
+                                        title={meterMinimized ? "Expand" : "Minimize"}
+                                    >
+                                        {meterMinimized ? <Icons.Maximize/> : <Icons.Minimize/>}
+                                    </button>
+
+                                    {/* CLOSE BUTTON */}
+                                    <button onClick={() => {setShowNoiseMeter(false); if(meterActive) toggleMic();}} style={{background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding: 2}}><Icons.X/></button>
+                                </div>
+
+                                {/* THE BIG METER BAR (Hidden when minimized) */}
+                                {!meterMinimized && (
+                                    <div style={{
+                                        height: 200, width: 40, background: '#334155', borderRadius: 20, 
+                                        position:'relative', overflow:'hidden', boxShadow:'inset 0 2px 5px rgba(0,0,0,0.3)',
+                                        border: '2px solid rgba(255,255,255,0.1)', marginBottom: 15
+                                    }}>
+                                        {/* The Liquid Fill */}
+                                        <div style={{
+                                            position:'absolute', bottom:0, left:0, right:0, 
+                                            height: `${volume}%`, 
+                                            background: volume > 70 ? '#ef4444' : volume > 40 ? '#eab308' : '#22c55e',
+                                            transition: 'height 0.1s ease-out, background 0.2s',
+                                            boxShadow: '0 0 20px currentColor'
+                                        }}/>
+                                        
+                                        {/* Marker Lines */}
+                                        <div style={{position:'absolute', top:'30%', left:0, right:0, height:2, background:'rgba(255,255,255,0.2)'}}></div>
+                                        <div style={{position:'absolute', top:'60%', left:0, right:0, height:2, background:'rgba(255,255,255,0.2)'}}></div>
+                                    </div>
+                                )}
+
+                                {/* MIC BUTTON (Adapts when minimized) */}
+                                <div style={{textAlign:'center'}}>
+                                    <button 
+                                        onClick={toggleMic} 
+                                        className="btn" 
+                                        style={{
+                                            justifyContent:'center', 
+                                            width: meterMinimized ? 44 : 60, 
+                                            height: meterMinimized ? 44 : 60, 
+                                            borderRadius:'50%', 
+                                            /* If minimized & active, the button BECOMES the light (Red/Green) */
+                                            background: meterActive 
+                                                ? (meterMinimized ? (volume > 50 ? '#ef4444' : '#22c55e') : '#ef4444') 
+                                                : '#3b82f6', 
+                                            color:'white', boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
+                                            transition: 'all 0.3s ease',
+                                            border: meterActive && meterMinimized ? '2px solid white' : 'none'
+                                        }}
+                                        title={meterActive ? "Stop Listening" : "Start Listening"}
+                                    >
+                                        {meterActive ? (meterMinimized ? <div style={{height: 6, width: 6, background:'white', borderRadius:'50%'}}/> : <Icons.Pause/>) : <div style={{fontSize: meterMinimized ? '1rem' : '1.5rem'}}>🎤</div>}
+                                    </button>
+                                    
+                                    {!meterMinimized && (
+                                        <div style={{marginTop:8, fontSize:'0.7rem', color:'#94a3b8', fontWeight:700, textTransform:'uppercase'}}>
+                                            {meterActive ? "Listening" : "Start"}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </DraggableBox>
+                    )}
+
 {/* TRAFFIC LIGHT OVERLAY (Floating or Fullscreen) */}
                     {trafficMode !== 'sidebar' && (
                         trafficMode === 'fullscreen' ? (
@@ -1971,6 +2158,53 @@ const removeWinner = () => {
                   {showImport && <ImportModal onClose={() => setShowImport(false)} onImport={performImport} />}
                 {showGroups && <GroupMakerModal names={activeNames} onClose={() => setShowGroups(false)} onStartScoring={handleStartScoring} />}
                 {showConceptEdit && <ConceptModal concepts={concepts} onClose={() => setShowConceptEdit(false)} onSave={setConcepts} />}
+{showLineup && (
+                    <div className="modal-overlay">
+                        <div className="modal" style={{maxWidth: 500, textAlign:'left', maxHeight:'80vh', display:'flex', flexDirection:'column'}}>
+                            <div style={{display:'flex', justifyContent:'space-between', marginBottom:20, alignItems:'center'}}>
+                                <h2 style={{margin:0, fontSize:'1.5rem'}}>Presentation Order</h2>
+                                <button onClick={() => setShowLineup(false)} className="btn" style={{padding:4}}><Icons.X/></button>
+                            </div>
+                            
+                            <div style={{
+                                overflowY:'auto', flex:1, paddingRight:10, 
+                                background:'rgba(0,0,0,0.2)', borderRadius:12, padding:10,
+                                /* Visual Shake Effect during animation */
+                                opacity: isLineupAnimating ? 0.8 : 1,
+                                transform: isLineupAnimating ? 'scale(0.99)' : 'scale(1)',
+                                transition: 'all 0.1s'
+                            }}>
+                                {lineupList.map((name, i) => (
+                                    <div key={i} style={{
+                                        display:'flex', alignItems:'center', gap:15, padding:'12px', 
+                                        background: i%2===0?'rgba(255,255,255,0.05)':'transparent', 
+                                        borderRadius:8, borderBottom:'1px solid rgba(255,255,255,0.05)',
+                                        /* Staggered slide-in effect when finished */
+                                        animation: isLineupAnimating ? 'none' : `fadeIn 0.3s ease-out forwards ${i * 0.05}s`,
+                                        opacity: isLineupAnimating ? 1 : 0 // Start hidden for animation
+                                    }}>
+                                        <div style={{fontWeight:800, fontSize:'1.2rem', color: theme.accent, width: 30, textAlign:'center'}}>{i+1}</div>
+                                        <div style={{fontSize:'1.1rem', fontWeight:600}}>{name}</div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div style={{marginTop:20, display:'flex', gap:10}}>
+                                <button 
+                                    onClick={generateLineup} 
+                                    disabled={isLineupAnimating}
+                                    className="btn" 
+                                    style={{flex:1, justifyContent:'center', background:'rgba(255,255,255,0.1)', opacity: isLineupAnimating ? 0.5 : 1}}
+                                >
+                                    <Icons.Shuffle/> {isLineupAnimating ? "Shuffling..." : "Reshuffle"}
+                                </button>
+                                <button onClick={() => {navigator.clipboard.writeText(lineupList.map((n,i)=>`${i+1}. ${n}`).join('\n')); alert("List copied to clipboard!");}} className="btn" style={{flex:1, justifyContent:'center', background: theme.accent, color:'white'}}>
+                                    <Icons.Copy/> Copy List
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
           );
         }
