@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Class Spinner 4.1 (Fixed Layout)</title>
+    <title>Swiss Army Spinner</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -30,6 +30,52 @@
         /* Animation utilities */
         .fade-in { animation: fadeIn 0.3s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
+/* --- 3D ANIMATIONS (SMARTER) --- */
+        /* COIN */
+        .coin-container { perspective: 1000px; width: 150px; height: 150px; margin: 0 auto; position: relative; }
+        .coin { width: 100%; height: 100%; transform-style: preserve-3d; position: relative; }
+        .coin-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; border-radius: 50%; box-shadow: inset 0 0 15px rgba(0,0,0,0.3); border: 8px solid #cbd5e1; }
+        
+        /* HEADS: Silver/Blue */
+        .face-heads { background: radial-gradient(circle, #f8fafc, #94a3b8); color: #334155; font-size: 1.5rem; }
+        /* TAILS: Gold/Orange */
+        .face-tails { transform: rotateY(180deg); background: radial-gradient(circle, #fef3c7, #d97706); color: #78350f; font-size: 1.5rem; border-color: #f59e0b; }
+
+        /* Animation Classes */
+        .flip-to-heads { animation: flipHeads 2.5s cubic-bezier(0.1, 0.7, 0.6, 1) forwards; }
+        .flip-to-tails { animation: flipTails 2.5s cubic-bezier(0.1, 0.7, 0.6, 1) forwards; }
+        @keyframes flipHeads { 0% { transform: rotateY(0); } 100% { transform: rotateY(1800deg); } } /* Lands on 0 (Front) */
+        @keyframes flipTails { 0% { transform: rotateY(0); } 100% { transform: rotateY(1980deg); } } /* Lands on 180 (Back) */
+
+        /* DICE */
+        .dice-container { perspective: 1000px; width: 100px; height: 100px; margin: 20px auto; }
+        .dice { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; }
+        .dice-face { position: absolute; width: 100px; height: 100px; background: white; border: 2px solid #ccc; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: bold; color: #333; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); backface-visibility: hidden;}
+        
+        /* Standard Dice Mapping */
+        .df-1 { transform: translateZ(50px); }
+        .df-2 { transform: rotateX(-90deg) translateZ(50px); }
+        .df-3 { transform: rotateY(-90deg) translateZ(50px); }
+        .df-4 { transform: rotateY(90deg) translateZ(50px); }
+        .df-5 { transform: rotateX(90deg) translateZ(50px); }
+        .df-6 { transform: rotateY(180deg) translateZ(50px); }
+
+        /* Dice Roll Animations (Targeting specific numbers) */
+        .roll-to-1 { animation: roll1 2s cubic-bezier(0.1, 0.8, 0.2, 1) forwards; }
+        .roll-to-2 { animation: roll2 2s cubic-bezier(0.1, 0.8, 0.2, 1) forwards; }
+        .roll-to-3 { animation: roll3 2s cubic-bezier(0.1, 0.8, 0.2, 1) forwards; }
+        .roll-to-4 { animation: roll4 2s cubic-bezier(0.1, 0.8, 0.2, 1) forwards; }
+        .roll-to-5 { animation: roll5 2s cubic-bezier(0.1, 0.8, 0.2, 1) forwards; }
+        .roll-to-6 { animation: roll6 2s cubic-bezier(0.1, 0.8, 0.2, 1) forwards; }
+
+        @keyframes roll1 { 0% { transform: rotateX(0) rotateY(0); } 100% { transform: rotateX(720deg) rotateY(720deg); } }
+        @keyframes roll2 { 0% { transform: rotateX(0) rotateY(0); } 100% { transform: rotateX(810deg) rotateY(720deg); } }
+        @keyframes roll3 { 0% { transform: rotateX(0) rotateY(0); } 100% { transform: rotateX(720deg) rotateY(810deg); } }
+        @keyframes roll4 { 0% { transform: rotateX(0) rotateY(0); } 100% { transform: rotateX(720deg) rotateY(630deg); } }
+        @keyframes roll5 { 0% { transform: rotateX(0) rotateY(0); } 100% { transform: rotateX(630deg) rotateY(720deg); } }
+        @keyframes roll6 { 0% { transform: rotateX(0) rotateY(0); } 100% { transform: rotateX(720deg) rotateY(900deg); } }
+   
     </style>
 </head>
 <body>
@@ -37,6 +83,44 @@
 
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
+        // --- DRAGGABLE HELPER ---
+        const DraggableBox = ({ children, x=0, y=0, style={}, className="" }) => {
+            const [pos, setPos] = useState({x, y});
+            const [dragging, setDragging] = useState(false);
+            const offset = useRef({x:0, y:0});
+
+            useEffect(() => {
+                const move = (e) => {
+                    if(dragging) setPos({ x: e.clientX - offset.current.x, y: e.clientY - offset.current.y });
+                };
+                const up = () => setDragging(false);
+                if(dragging) {
+                    window.addEventListener('mousemove', move);
+                    window.addEventListener('mouseup', up);
+                }
+                return () => {
+                    window.removeEventListener('mousemove', move);
+                    window.removeEventListener('mouseup', up);
+                };
+            }, [dragging]);
+
+            const start = (e) => {
+                // Don't drag if clicking buttons or the resize handle (bottom-right)
+                if(e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || e.target.tagName === 'OPTION') return;
+                const rect = e.currentTarget.getBoundingClientRect();
+                if(e.clientX > rect.right - 20 && e.clientY > rect.bottom - 20) return; // Resize zone
+                
+                setDragging(true);
+                offset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
+            };
+
+            return (
+                <div onMouseDown={start} style={{...style, position:'absolute', left:pos.x, top:pos.y, cursor: dragging ? 'grabbing' : 'grab', userSelect:'none'}} className={className}>
+                    {children}
+                </div>
+            );
+        };
+        
         // --- ICONS ---
         const Icons = {
           Settings: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
@@ -255,7 +339,7 @@
 
         // --- 3. SUB-COMPONENTS ---
 
-        const Timer = ({ audioCtx, onClose }) => {
+const Timer = ({ audioCtx, onClose }) => {
           const [mode, setMode] = useState('stopwatch');
           const [time, setTime] = useState(0); 
           const [isRunning, setIsRunning] = useState(false); const [initialTime, setInitialTime] = useState(0);
@@ -268,20 +352,26 @@
           const formatTime = (s) => { const mins = Math.floor(s/60); const secs = s%60; return mins>=60?`${Math.floor(mins/60)}:${(mins%60).toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`:`${mins}:${secs.toString().padStart(2,'0')}`; };
           const handleSelectTime = (e) => { const seconds = parseInt(e.target.value); if (!isNaN(seconds)) { setMode('timer'); setInitialTime(seconds); setTime(seconds); setIsRunning(false); } };
           const handleReset = () => { setIsRunning(false); setTime(mode === 'timer' ? initialTime : 0); };
-          return (
-            <div style={{position:'absolute',top:'70px',left:'16px',zIndex:40,padding:'12px',background:'rgba(15,23,42,0.85)',backdropFilter:'blur(8px)',borderRadius:'12px',border:'1px solid rgba(255,255,255,0.15)',boxShadow:'0 4px 20px rgba(0,0,0,0.4)',display:'flex',flexDirection:'column',gap:'8px',minWidth:'160px'}}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                  <div style={{fontSize:'1.8rem',fontWeight:800,fontFamily:'monospace',lineHeight:1,fontVariantNumeric:'tabular-nums',color:time<=10&&mode==='timer'&&time>0?'#ef4444':'#fff'}}>{formatTime(time)}</div>
-                  <button onClick={onClose} style={{background:'none',border:'none',color:'#94a3b8',cursor:'pointer',padding:4}}><Icons.X/></button>
-              </div>
-             
-              <select onChange={handleSelectTime} style={{background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.1)',color:'#fff',padding:'6px',borderRadius:'6px',fontSize:'0.85rem',outline:'none',cursor:'pointer',width:'100%'}} defaultValue=""><option value="" disabled>Set Duration...</option>{timeOptions.map((opt,i)=>(<option key={i} value={opt.val} style={{color:'#000'}}>{opt.label}</option>))}</select>
-              <div style={{display:'flex',gap:8}}>
-                <button onClick={()=>setIsRunning(!isRunning)} className="btn" style={{flex:1,background:isRunning?'#ef4444':'#22c55e',color:'white',justifyContent:'center',padding:'8px',height:'36px'}}>{isRunning?<Icons.Pause/>:<Icons.Play/>}</button>
-                <button onClick={handleReset} className="btn" style={{background:'rgba(255,255,255,0.1)',justifyContent:'center',padding:'8px',height:'36px',width:'36px'}}><Icons.RotateCcw/></button>
-              </div>
-            </div>
-         
+return (
+            <DraggableBox x={16} y={70} style={{zIndex:40}}>
+                <div style={{
+                    padding:'12px', background:'rgba(15,23,42,0.85)', backdropFilter:'blur(8px)',
+                    borderRadius:'12px', border:'1px solid rgba(255,255,255,0.15)',
+                    boxShadow:'0 4px 20px rgba(0,0,0,0.4)', display:'flex', flexDirection:'column',
+                    gap:'8px', minWidth:'160px', resize:'both', overflow:'hidden'
+                }}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <div style={{fontSize:'1.8rem',fontWeight:800,fontFamily:'monospace',lineHeight:1,fontVariantNumeric:'tabular-nums',color:time<=10&&mode==='timer'&&time>0?'#ef4444':'#fff'}}>{formatTime(time)}</div>
+                      <button onClick={onClose} style={{background:'none',border:'none',color:'#94a3b8',cursor:'pointer',padding:4}}><Icons.X/></button>
+                  </div>
+                 
+                  <select onChange={handleSelectTime} style={{background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.1)',color:'#fff',padding:'6px',borderRadius:'6px',fontSize:'0.85rem',outline:'none',cursor:'pointer',width:'100%'}} defaultValue=""><option value="" disabled>Set Duration...</option>{timeOptions.map((opt,i)=>(<option key={i} value={opt.val} style={{color:'#000'}}>{opt.label}</option>))}</select>
+                  <div style={{display:'flex',gap:8}}>
+                    <button onClick={()=>setIsRunning(!isRunning)} className="btn" style={{flex:1,background:isRunning?'#ef4444':'#22c55e',color:'white',justifyContent:'center',padding:'8px',height:'36px'}}>{isRunning?<Icons.Pause/>:<Icons.Play/>}</button>
+                    <button onClick={handleReset} className="btn" style={{background:'rgba(255,255,255,0.1)',justifyContent:'center',padding:'8px',height:'36px',width:'36px'}}><Icons.RotateCcw/></button>
+                  </div>
+                </div>
+            </DraggableBox>
           );
         };
 
@@ -337,21 +427,72 @@
             );
         };
 
-        const HelpModal = ({ onClose }) => (
+const HelpModal = ({ onClose }) => (
             <div className="modal-overlay">
-              <div className="modal" style={{maxWidth:500,textAlign:'left'}}>
-                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}><h2 style={{margin:0,fontSize:'1.5rem'}}>How to Use</h2><button onClick={onClose} className="btn" style={{padding:4}}><Icons.X/></button></div>
-                 <div style={{display:'flex',flexDirection:'column',gap:16,maxHeight:'60vh',overflowY:'auto',paddingRight:8}}>
-                    <div><div style={{fontWeight:700,marginBottom:4,display:'flex',alignItems:'center',gap:8}}><span style={{background:'rgba(128,128,128,0.2)',padding:'2px 8px',borderRadius:4}}>Spacebar</span><span>to Spin</span></div><div style={{fontSize:'0.9rem',opacity:0.8}}>Press spacebar to spin.</div></div>
-                    <div><div style={{fontWeight:700,marginBottom:4,display:'flex',alignItems:'center',gap:8}}><Icons.BarChart/> Heatmap</div><div style={{fontSize:'0.9rem',opacity:0.8}}>Toggle "Heatmap" to track participation counts. Green=0, Red=Many.</div></div>
-                    <div><div style={{fontWeight:700,marginBottom:4,display:'flex',alignItems:'center',gap:8}}><Icons.Scales/> Fair Mode</div><div style={{fontSize:'0.9rem',opacity:0.8}}>Auto-hides winners so everyone gets picked once. Reset when done.</div></div>
-                    <div><div style={{fontWeight:700,marginBottom:4,display:'flex',alignItems:'center',gap:8}}><Icons.Swords/> Battle Mode</div><div style={{fontSize:'0.9rem',opacity:0.8}}>Selects two students sequentially for a "VS" face-off.</div></div>
-                    <div><div style={{fontWeight:700,marginBottom:4,display:'flex',alignItems:'center',gap:8}}><Icons.Brain/> Concept Mode</div><div style={{fontSize:'0.9rem',opacity:0.8}}>Adds a second wheel. Click Edit <Icons.Edit/> to change topics.</div></div>
-                    <div><div style={{fontWeight:700,marginBottom:4,display:'flex',alignItems:'center',gap:8}}><Icons.Save/> Class Manager</div><div style={{fontSize:'0.9rem',opacity:0.8}}>Save your current list or load a previously saved class.</div></div>
-                    <div><div style={{fontWeight:700,marginBottom:4,display:'flex',alignItems:'center',gap:8}}><Icons.EyeOff/> Hide Students</div><div style={{fontSize:'0.9rem',opacity:0.8}}>Click a name chip in the sidebar to temporarily hide it.</div></div>
+              <div className="modal" style={{maxWidth:600, textAlign:'left'}}>
+                 <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20}}>
+                     <h2 style={{margin:0, fontSize:'1.5rem'}}>Swiss Army Guide</h2>
+                     <button onClick={onClose} className="btn" style={{padding:4}}><Icons.X/></button>
+                 </div>
+                 
+                 <div style={{display:'flex', flexDirection:'column', gap:16, maxHeight:'60vh', overflowY:'auto', paddingRight:12}}>
+                    
+                    {/* BASICS */}
+                    <div style={{background:'rgba(128,128,128,0.05)', padding:10, borderRadius:8}}>
+                        <div style={{fontWeight:800, color:'#fbbf24', marginBottom:4, textTransform:'uppercase', fontSize:'0.8rem'}}>The Basics</div>
+                        <div style={{marginBottom:4}}>
+                            <span style={{fontWeight:700}}>Spinning:</span> Press <span style={{background:'rgba(255,255,255,0.1)', padding:'2px 6px', borderRadius:4, fontFamily:'monospace'}}>Spacebar</span> or click "SPIN".
+                        </div>
+                        <div>
+                            <span style={{fontWeight:700}}>Hide Names:</span> Click any name chip in the list to temporarily skip them (shown with strikethrough).
+                        </div>
+                    </div>
+
+                    {/* SAVING & ROSTERS */}
+                    <div style={{background:'rgba(128,128,128,0.05)', padding:10, borderRadius:8}}>
+                        <div style={{fontWeight:800, color:'#3b82f6', marginBottom:4, textTransform:'uppercase', fontSize:'0.8rem'}}>Class Management</div>
+                        <div style={{marginBottom:8}}>
+                            <div style={{fontWeight:700, display:'flex', alignItems:'center', gap:6}}><Icons.Save/> Saving a Class</div>
+                            <div style={{fontSize:'0.9rem', opacity:0.8, marginLeft:24}}>
+                                Type a name (e.g., "Period 1") in the top box and click the <Icons.Save/> button. It saves to your browser automatically.
+                            </div>
+                        </div>
+                        <div>
+                            <div style={{fontWeight:700, display:'flex', alignItems:'center', gap:6}}><Icons.Clipboard/> Importing Rosters</div>
+                            <div style={{fontSize:'0.9rem', opacity:0.8, marginLeft:24}}>
+                                Click <b>Import</b> in the Tools menu. You can paste a list of names or upload a <b>.txt</b> or <b>.csv</b> file from your computer.
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* MODES */}
+                    <div style={{background:'rgba(128,128,128,0.05)', padding:10, borderRadius:8}}>
+                        <div style={{fontWeight:800, color:'#ec4899', marginBottom:4, textTransform:'uppercase', fontSize:'0.8rem'}}>Game Modes</div>
+                        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10}}>
+                            <div>
+                                <div style={{fontWeight:700}}><Icons.Swords/> Battle</div>
+                                <div style={{fontSize:'0.85rem', opacity:0.8}}>Picks two students to face off.</div>
+                            </div>
+                            <div>
+                                <div style={{fontWeight:700}}><Icons.Scales/> Fair Mode</div>
+                                <div style={{fontSize:'0.85rem', opacity:0.8}}>Ensures everyone is picked once before repeating.</div>
+                            </div>
+                            <div>
+                                <div style={{fontWeight:700}}><Icons.Brain/> Concept</div>
+                                <div style={{fontSize:'0.85rem', opacity:0.8}}>Adds a second wheel for topics/questions.</div>
+                            </div>
+                            <div>
+                                <div style={{fontWeight:700}}><Icons.BarChart/> Heatmap</div>
+                                <div style={{fontSize:'0.85rem', opacity:0.8}}>Tracks participation. Click "Export CSV" to save data.</div>
+                            </div>
+                        </div>
+                    </div>
+
                  </div>
            
-                  <div style={{marginTop:20,textAlign:'center'}}><button onClick={onClose} className="btn btn-primary" style={{width:'100%',fontSize:'1rem',padding:12}}>Got it!</button></div>
+                  <div style={{marginTop:20, textAlign:'center'}}>
+                      <button onClick={onClose} className="btn btn-primary" style={{width:'100%', fontSize:'1rem', padding:12}}>Let's Play!</button>
+                  </div>
               </div>
             </div>
         );
@@ -444,6 +585,37 @@
           const [rapidWinners, setRapidWinners] = useState([]);
           
           // HEATMAP STATE
+// --- ANIMATION & UTILITIES STATE ---
+         const [trafficLight, setTrafficLight] = useState('green'); 
+          const [trafficMode, setTrafficMode] = useState('sidebar'); // 'sidebar', 'floating', 'fullscreen' 
+          const [scratchpad, setScratchpad] = useState(localStorage.getItem('spinner_scratchpad') || "");
+          const [tempWheelItems, setTempWheelItems] = useState(null); // Allows temporarily swapping the list
+          const [chanceAnim, setChanceAnim] = useState(null); // 'coin', 'dice'
+          const [chanceResult, setChanceResult] = useState(null);
+
+          useEffect(() => { localStorage.setItem('spinner_scratchpad', scratchpad); }, [scratchpad]);
+
+          // TRUE PHYSICS FUNCTIONS
+// TRUE PHYSICS FUNCTIONS
+          const runChance = (type) => {
+              // 1. NUMBER WHEEL (1-10)
+              if (type === 'num') {
+                  const numbers = Array.from({length: 10}, (_, i) => (i + 1).toString());
+                  setTempWheelItems(numbers);
+                  setTimeout(() => spin(), 100);
+              } 
+              // 2. COIN FLIP (Pre-calculate Result)
+              else if (type === 'coin') {
+                  setChanceResult(Math.random() < 0.5 ? "HEADS" : "TAILS");
+                  setChanceAnim('coin');
+              } 
+              // 3. DICE ROLL (Pre-calculate Result)
+              else if (type === 'dice') {
+                  setChanceResult(Math.floor(Math.random() * 6) + 1);
+                  setChanceAnim('dice');
+              }
+          };
+
           const [participation, setParticipation] = useState({});
           const [showHeatmap, setShowHeatmap] = useState(false);
 
@@ -457,8 +629,7 @@
           const pointerRef2 = useRef(0); 
 
           const theme = THEMES[currentThemeId];
-          const activeNames = useMemo(() => names.filter(n => !hiddenNames.includes(n)), [names, hiddenNames]);
-          useEffect(() => { const saved = localStorage.getItem('spinner_lists'); if(saved) setSavedLists(JSON.parse(saved)); }, []);
+const activeNames = useMemo(() => tempWheelItems || names.filter(n => !hiddenNames.includes(n)), [names, hiddenNames, tempWheelItems]);          useEffect(() => { const saved = localStorage.getItem('spinner_lists'); if(saved) setSavedLists(JSON.parse(saved)); }, []);
           const saveList = () => { 
               if(!newListName.trim()) return;
               const u={...savedLists,[newListName]:names}; 
@@ -482,12 +653,17 @@
           const performImport = (l) => { setNames(l); setInputText(l.join('\n')); setShowImport(false); setHiddenNames([]); setParticipation({}); };
           const toggleHidden = (n) => { setHiddenNames(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n]); };
           const shuffleNames = () => { const s=[...names].sort(()=>Math.random()-0.5); setInputText(s.join('\n')); setNames(s); };
-          const removeWinner = () => { 
-              setWinner(null);
-              setBloomWinner(null); 
-              setWinnerTimerActive(false); 
-              if(rapidMode) { setRapidMode(false); setRapidWinners([]); }
-          };
+const removeWinner = () => {
+    if (winner && !rapidMode && winner !== "Group Complete!" && !tempWheelItems) {
+         setHiddenNames(prev => [...prev, winner]);
+    }
+    setWinner(null);
+    setBloomWinner(null); 
+    setTempWheelItems(null); // RESET WHEEL TO STUDENTS
+    setChanceAnim(null);     // RESET COIN/DICE
+    setWinnerTimerActive(false); 
+    if(rapidMode) { setRapidMode(false); setRapidWinners([]); }
+};
           const handleImageUpload = (e) => { const f=e.target.files[0]; if(f){ const r=new FileReader(); r.onload=(evt)=>{ const i=new Image(); i.onload=()=>{setHubImage(i);
           if(canvasRef.current)drawWheel(canvasRef.current, bloomMode === 'solo' ? concepts : activeNames, rotationRef.current, pointerRef.current, mysteryMode);}; i.src=evt.target.result; }; r.readAsDataURL(f); } };
           const handleStartScoring = (g) => { setActiveTeams(g); setTeamScores(new Array(g.length).fill(0)); setShowGroups(false); };
@@ -501,6 +677,20 @@
               setRapidTarget(count);
               setRapidWinners([]);
               spin();
+          };
+
+          const exportCSV = () => {
+              let csvContent = "data:text/csv;charset=utf-8,Name,Count\n";
+              names.forEach(n => {
+                  csvContent += `${n},${participation[n] || 0}\n`;
+              });
+              const encodedUri = encodeURI(csvContent);
+              const link = document.createElement("a");
+              link.setAttribute("href", encodedUri);
+              link.setAttribute("download", "class_participation.csv");
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
           };
 
           const drawWheel = (canvas, items, currentRotation, currentPointer, isMystery) => {
@@ -650,6 +840,19 @@
       
                }
           }, [names, hiddenNames, currentThemeId, mysteryMode, isSpinning, hubImage, bloomMode, concepts, activeNames]);
+        // --- AUTO-RESIZE FIX ---
+          useEffect(() => {
+              const handleResize = () => {
+                  const mainList = bloomMode === 'solo' ? concepts : activeNames;
+                  drawWheel(canvasRef.current, mainList, rotationRef.current, pointerRef.current, mysteryMode);
+                  if (bloomMode === 'dual') {
+                      drawWheel(canvasRef2.current, concepts, rotationRef2.current, pointerRef2.current, false);
+                  }
+              };
+              window.addEventListener('resize', handleResize);
+              return () => window.removeEventListener('resize', handleResize);
+          }, [bloomMode, concepts, activeNames, mysteryMode]);
+
         // Keyboard Hotkeys
           useEffect(() => {
               const k = (e) => {
@@ -778,7 +981,7 @@
                 <div className={`sidebar ${showSettings ? 'open' 
                 : 'closed'} ${projectorMode ? 'projector-hidden' : ''}`}>
                     <div style={{padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(128,128,128,0.1)'}}>
-                         <h1 style={{margin:0, fontSize: '1.25rem', fontWeight:800, background: `linear-gradient(to right, ${theme.accent}, ${theme.colors[0]})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}>Class Spinner</h1>
+                         <h1 style={{margin:0, fontSize: '1.25rem', fontWeight:800, background: `linear-gradient(to right, ${theme.accent}, ${theme.colors[0]})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}>Swiss Army Spinner</h1>
                        
                           <div style={{display:'flex', gap: 4}}>
                             <button className="btn" onClick={() => setShowHelp(true)} title="Help" style={{padding: 8}}><Icons.HelpCircle /></button>
@@ -846,7 +1049,9 @@
                                             </div>
                                         )
                                     })}
-                      
+                                    <button onClick={exportCSV} className="btn" style={{fontSize:'0.7rem', padding:'2px 6px', background:'rgba(128,128,128,0.1)', width: '100%', marginTop: 8, justifyContent:'center'}}>
+                                        <Icons.Save /> Export CSV
+                                    </button>
                                   </div>
                             ) : (
                                 <textarea value={inputText} onChange={(e) => updateNames(e.target.value)} className="textarea" placeholder="Enter names..." />
@@ -868,45 +1073,72 @@
 
                         <div style={{marginTop: 20}}> 
                             <span className="section-title">Tools</span>
-  
-                               <div style={{display:'flex', gap:8, flexWrap: 'wrap'}}>
-                                <button onClick={shuffleNames} className="btn" style={{background: 'rgba(128,128,128,0.1)', flex:'1 1 40%'}}><Icons.Shuffle/> Shuffle</button>
-                              
-                                 <button onClick={() => setMysteryMode(!mysteryMode)} className="btn" style={{background: mysteryMode ? theme.accent : 'rgba(128,128,128,0.1)', color: mysteryMode ?
-                                '#fff' : 'inherit', flex:'1 1 40%'}}>
-                                   {mysteryMode ?
-                                <Icons.EyeOff/> : <Icons.Eye/>} {mysteryMode ? 'Mystery' : 'Visible'}
+                            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8}}>
+                                
+                                {/* SHUFFLE */}
+                                <button onClick={shuffleNames} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>
+                                    <Icons.Shuffle/> Shuffle
+                                </button>
+
+                                {/* MYSTERY MODE */}
+                                <button onClick={() => setMysteryMode(!mysteryMode)} className="btn" 
+                                    style={{
+                                        background: mysteryMode ? theme.accent : 'rgba(128,128,128,0.1)', 
+                                        color: mysteryMode ? '#fff' : 'inherit',
+                                        boxShadow: mysteryMode ? `0 0 10px ${theme.accent}` : 'none', // GLOW EFFECT
+                                        transition: 'all 0.3s ease'
+                                    }}>
+                                    {mysteryMode ? <Icons.EyeOff/> : <Icons.Eye/>} {mysteryMode ? 'Mystery On' : 'Visible'}
                                 </button>
                                 
-                             
-                                 <button onClick={() => {setBattleMode(!battleMode); setBloomMode('off'); setBattleStage('idle'); setRapidMode(false);}} className="btn" style={{background: battleMode ? '#f59e0b' : 'rgba(128,128,128,0.1)', color: battleMode ?
-                                '#fff' : 'inherit', flex:'1 1 40%'}}>
-                                   <Icons.Swords/> {battleMode ?
-                                'Battle' : 'Battle'}
+                                {/* BATTLE MODE */}
+                                <button onClick={() => {setBattleMode(!battleMode); setBloomMode('off'); setBattleStage('idle'); setRapidMode(false);}} className="btn" 
+                                    style={{
+                                        background: battleMode ? '#f59e0b' : 'rgba(128,128,128,0.1)', 
+                                        color: battleMode ? '#fff' : 'inherit',
+                                        boxShadow: battleMode ? '0 0 10px #f59e0b' : 'none' // GLOW EFFECT
+                                    }}>
+                                    <Icons.Swords/> Battle
                                 </button>
 
-                                <button onClick={() => setFairMode(!fairMode)} className="btn" style={{background: fairMode ?
-                                '#10b981' : 'rgba(128,128,128,0.1)', color: fairMode ? '#fff' : 'inherit', flex:'1 1 40%'}}>
-                                   <Icons.Scales/> {fairMode ?
-                                'Fair On' : 'Fair Off'}
+                                {/* FAIR MODE */}
+                                <button onClick={() => setFairMode(!fairMode)} className="btn" 
+                                    style={{
+                                        background: fairMode ? '#10b981' : 'rgba(128,128,128,0.1)', 
+                                        color: fairMode ? '#fff' : 'inherit',
+                                        boxShadow: fairMode ? '0 0 10px #10b981' : 'none' // GLOW EFFECT
+                                    }}>
+                                    <Icons.Scales/> Fair Mode
                                 </button>
 
-                                <div style={{display:'flex', flex: '1 1 40%', gap: 4}}>
-                         
-                                     <button onClick={toggleBloomMode} className="btn" style={{background: bloomMode !== 'off' ?
-                                    '#3b82f6' : 'rgba(128,128,128,0.1)', color: bloomMode !== 'off' ? '#fff' : 'inherit', flex: 1}}>
-                                       <Icons.Brain/> {bloomMode === 'solo' ?
-                                    "Concept" : bloomMode === 'dual' ? "Name+" : "Concept"}
+                                {/* CONCEPT MODE */}
+                                <div style={{display:'flex', gap: 4, gridColumn: 'span 2'}}>
+                                    <button onClick={toggleBloomMode} className="btn" 
+                                        style={{
+                                            flex: 1,
+                                            background: bloomMode !== 'off' ? '#3b82f6' : 'rgba(128,128,128,0.1)', 
+                                            color: bloomMode !== 'off' ? '#fff' : 'inherit',
+                                            boxShadow: bloomMode !== 'off' ? '0 0 10px #3b82f6' : 'none'
+                                        }}>
+                                        <Icons.Brain/> {bloomMode === 'solo' ? "Concept Only" : bloomMode === 'dual' ? "Name + Concept" : "Concept Mode"}
                                     </button>
-                                    <button onClick={() => setShowConceptEdit(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)', padding: 8}} title="Edit Concepts"><Icons.Edit/></button>
-          
-                                      </div>
+                                    <button onClick={() => setShowConceptEdit(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)', padding: 10}} title="Edit Concepts"><Icons.Edit/></button>
+                                </div>
 
-                                <button onClick={() => setShowImport(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)', flex:'1 1 40%'}}><Icons.Clipboard/> Import</button>
-                                <button onClick={() => setShowGroups(true)} 
-                                className="btn" style={{background: 'rgba(128,128,128,0.1)', flex:'1 1 40%'}}><Icons.Users/> Teams</button>
-                                <button onClick={() => setShowTimer(!showTimer)} className="btn" style={{background: showTimer ?
-                                theme.accent : 'rgba(128,128,128,0.1)', color: showTimer ? '#fff' : 'inherit', flex:'1 1 40%'}}><Icons.Clock/> Timer</button>
+                                {/* UTILITIES */}
+                                <button onClick={() => setShowImport(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}><Icons.Clipboard/> Import</button>
+                                <button onClick={() => setShowGroups(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}><Icons.Users/> Teams</button>
+                                
+                                {/* TIMER (Full Width) */}
+                                <button onClick={() => setShowTimer(!showTimer)} className="btn" 
+                                    style={{
+                                        gridColumn: 'span 2',
+                                        background: showTimer ? theme.accent : 'rgba(128,128,128,0.1)', 
+                                        color: showTimer ? '#fff' : 'inherit',
+                                        justifyContent: 'center'
+                                    }}>
+                                    <Icons.Clock/> {showTimer ? "Hide Timer" : "Open Timer"}
+                                </button>
                             </div>
                         </div>
 
@@ -922,21 +1154,63 @@
                                 activeNames.length < 5} className="btn" style={{flex:1, background: 'rgba(236, 72, 153, 0.2)', color:'#ec4899', justifyContent:'center'}}>Pick 5</button>
                              </div>
                         </div>
-                        
-                        
-                        <div style={{marginTop: 8}}>
-                         
-                           <span className="section-title">Theme</span>
-                            <div className="theme-grid">{Object.entries(THEMES).map(([id, t]) => (<button key={id} onClick={() => setCurrentThemeId(id)} className="theme-btn" style={{background: currentThemeId === id ? theme.accent : 'transparent', color: currentThemeId === id ? '#fff' : 'inherit', borderColor: currentThemeId === id ? theme.accent : 'rgba(128,128,128,0.2)'}}><span style={{width:10, height:10, borderRadius:'50%', background: t.colors[1], display:'inline-block', marginRight: 6}}></span>{t.name}</button>))}</div>
-                        </div>
-   
-                      
+                        {/* 1. CHANCE MODULE */}
                         <div style={{marginTop: 20}}>
-                             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 8}}><span className="section-title">Sound Pack</span><button onClick={() => setSoundEnabled(!soundEnabled)} className="btn" style={{padding: 4}}> {soundEnabled ?
-                                <Icons.Volume2/> : <Icons.VolumeX/>} </button></div>
-                             <div style={{display:'flex', gap: 4, background:'rgba(128,128,128,0.1)', padding: 4, borderRadius: 8}}>{['standard', 'arcade', 'spooky'].map(s => (<button key={s} onClick={() => setSoundTheme(s)} style={{flex: 1, padding: '6px 0', border: 'none', borderRadius: 4, background: soundTheme === s ? theme.accent : 'transparent', color: soundTheme === s ? '#fff' : 'inherit', fontSize: '0.8rem', textTransform: 'capitalize', cursor: 'pointer', fontWeight: 600}}>{s}</button>))}</div>
-                   
-                          </div>
+                             <span className="section-title">Chance Tools</span>
+                             <div style={{display:'flex', gap: 8}}>
+                                 <button onClick={() => runChance('coin')} className="btn" style={{flex:1, background: 'rgba(255,255,255,0.1)', justifyContent:'center'}}>Flip Coin</button>
+                                 <button onClick={() => runChance('dice')} className="btn" style={{flex:1, background: 'rgba(255,255,255,0.1)', justifyContent:'center'}}>Roll D6</button>
+                                 <button onClick={() => runChance('num')} className="btn" style={{flex:1, background: 'rgba(255,255,255,0.1)', justifyContent:'center'}}>1-10</button>
+                             </div>
+                        </div>
+
+{/* 2. TRAFFIC LIGHT WIDGET */}
+                        <div style={{marginTop: 20}}>
+                             {trafficMode === 'sidebar' ? (
+                                 <div style={{display:'flex', gap:8}}>
+                                     {/* The Lights */}
+                                     <div style={{
+                                         flex: 1, display:'flex', justifyContent:'space-evenly', 
+                                         background:'rgba(0,0,0,0.2)', padding: '12px 0', 
+                                         borderRadius: 12, border:'1px solid rgba(255,255,255,0.05)'
+                                     }}>
+                                        {['red', 'yellow', 'green'].map(color => (
+                                            <button key={color} onClick={() => setTrafficLight(color)}
+                                                style={{
+                                                    width: 40, height: 40, borderRadius: '50%', cursor: 'pointer', border: '3px solid rgba(255,255,255,0.15)',
+                                                    background: color === 'red' ? '#ef4444' : color === 'yellow' ? '#eab308' : '#22c55e',
+                                                    opacity: trafficLight === color ? 1 : 0.25,
+                                                    transform: trafficLight === color ? 'scale(1.15)' : 'scale(1)',
+                                                    boxShadow: trafficLight === color ? `0 0 20px ${color === 'red' ? '#ef4444' : color === 'yellow' ? '#eab308' : '#22c55e'}` : 'none',
+                                                    transition: 'all 0.3s ease'
+                                                }}
+                                            />
+                                        ))}
+                                     </div>
+                                     {/* Project Button */}
+                                     <button onClick={() => setTrafficMode('floating')} className="btn" style={{width: 50, justifyContent:'center', background:'rgba(255,255,255,0.1)'}} title="Project to Screen">
+                                         <Icons.Maximize/>
+                                     </button>
+                                 </div>
+                             ) : (
+                                 /* Placeholder when projected */
+                                 <button onClick={() => setTrafficMode('sidebar')} className="btn" style={{width:'100%', justifyContent:'center', background:'rgba(34,197,94,0.15)', color:'#4ade80', padding: 16, border:'1px dashed rgba(34,197,94,0.3)'}}>
+                                     <Icons.ArrowDown/> Active on Screen (Click to Return)
+                                 </button>
+                             )}
+                        </div>
+
+{/* 3. SCRATCHPAD */}
+                        <div style={{marginTop: 20}}>
+                             <span className="section-title">Quick Notes (Auto-Saved)</span>
+                             <textarea 
+                                value={scratchpad} 
+                                onChange={(e) => setScratchpad(e.target.value)} 
+                                className="textarea" 
+                                placeholder="Jot down reminders, homework, or ideas here..." 
+                                style={{minHeight: 80, fontSize:'0.85rem', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)'}}
+                             />
+                        </div>
 
                         {/* GAME SHOW FX */}
                         <div style={{marginTop: 20}}>
@@ -961,6 +1235,57 @@
                 </div>
 
                 <div className="main">
+{/* TRAFFIC LIGHT OVERLAY (Floating or Fullscreen) */}
+                    {trafficMode !== 'sidebar' && (
+                        trafficMode === 'fullscreen' ? (
+                            // FULLSCREEN MODE (Locked/Centered)
+                            <div style={{position: 'absolute', zIndex: 60, inset: 0, background: 'rgba(15, 23, 42, 0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                                <div style={{display: 'flex', flexDirection: 'column', gap: 40, alignItems: 'center'}}>
+                                    {['red', 'yellow', 'green'].map(color => (
+                                        <button key={color} onClick={() => setTrafficLight(color)}
+                                            style={{
+                                                borderRadius: '50%', cursor: 'pointer', border: '4px solid rgba(255,255,255,0.1)',
+                                                background: color === 'red' ? '#ef4444' : color === 'yellow' ? '#eab308' : '#22c55e',
+                                                width: '20vh', height: '20vh',
+                                                opacity: trafficLight === color ? 1 : 0.2,
+                                                transform: trafficLight === color ? 'scale(1.1)' : 'scale(1)',
+                                                boxShadow: trafficLight === color ? `0 0 100px ${color === 'red' ? '#ef4444' : color === 'yellow' ? '#eab308' : '#22c55e'}` : 'none',
+                                                transition: 'all 0.3s ease'
+                                            }}
+                                        />
+                                    ))}
+                                    <div style={{display:'flex', gap:8}}>
+                                        <button onClick={() => setTrafficMode('floating')} className="btn" style={{padding:12, background:'rgba(255,255,255,0.1)'}} title="Shrink to Widget"><Icons.Minimize/></button>
+                                        <button onClick={() => setTrafficMode('sidebar')} className="btn" style={{padding:12, background:'rgba(239, 68, 68, 0.2)', color:'#ef4444'}} title="Close to Sidebar"><Icons.X/></button>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            // FLOATING MODE (Draggable)
+                            <DraggableBox x={20} y={20} style={{zIndex: 60}}>
+                                <div style={{background: 'rgba(15, 23, 42, 0.8)', padding: 12, borderRadius: 16, border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', display:'flex', gap:12, alignItems:'center'}}>
+                                    {['red', 'yellow', 'green'].map(color => (
+                                        <button key={color} onClick={() => setTrafficLight(color)}
+                                            style={{
+                                                borderRadius: '50%', cursor: 'pointer', border: '2px solid rgba(255,255,255,0.1)',
+                                                background: color === 'red' ? '#ef4444' : color === 'yellow' ? '#eab308' : '#22c55e',
+                                                width: 50, height: 50,
+                                                opacity: trafficLight === color ? 1 : 0.2,
+                                                transform: trafficLight === color ? 'scale(1.1)' : 'scale(1)',
+                                                boxShadow: trafficLight === color ? `0 0 30px ${color === 'red' ? '#ef4444' : color === 'yellow' ? '#eab308' : '#22c55e'}` : 'none',
+                                                transition: 'all 0.3s ease'
+                                            }}
+                                        />
+                                    ))}
+                                    <div style={{display:'flex', flexDirection:'column', gap:8}}>
+                                        <button onClick={() => setTrafficMode('fullscreen')} className="btn" style={{padding:8, background:'rgba(255,255,255,0.1)'}} title="Go Full Screen"><Icons.Maximize/></button>
+                                        <button onClick={() => setTrafficMode('sidebar')} className="btn" style={{padding:8, background:'rgba(239, 68, 68, 0.2)', color:'#ef4444'}} title="Close to Sidebar"><Icons.X/></button>
+                                    </div>
+                                </div>
+                            </DraggableBox>
+                        )
+                    )}
+
                     {projectorMode && <button 
                     onClick={() => setProjectorMode(false)} className="projector-btn btn" title="Exit Projector Mode"><Icons.Minimize /></button>}
                     <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" style={{ display: 'none' }} />
@@ -993,10 +1318,9 @@
                      )}
 
                     <div ref={containerRef} className="wheel-container">
-                        <canvas ref={canvasRef} onClick={spin} style={{maxWidth: '100%', maxHeight: showTimer ?
-                        '55vh' : '70vh', cursor: 'pointer', filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.3))', transition: 'max-height 0.3s ease'}}/>
+                        <canvas ref={canvasRef} onClick={spin} style={{maxWidth: '100%', maxHeight: projectorMode ? '90vh' : (showTimer ? '55vh' : '70vh'), cursor: 'pointer', filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.3))', transition: 'max-height 0.3s ease'}}/>
                         {bloomMode === 'dual' && (
-                            <canvas ref={canvasRef2} onClick={spin} style={{maxWidth: '100%', maxHeight: showTimer ? '55vh' : '70vh', cursor: 'pointer', filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.3))', transition: 'max-height 0.3s ease'}}/>
+                            <canvas ref={canvasRef2} onClick={spin} style={{maxWidth: '100%', maxHeight: projectorMode ? '90vh' : (showTimer ? '55vh' : '70vh'), cursor: 'pointer', filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.3))', transition: 'max-height 0.3s ease'}}/>
           
                            )}
                     </div>
@@ -1025,7 +1349,58 @@
                           </div>
                      </div>
                 )}
+{/* 3D CHANCE ANIMATIONS OVERLAY */}
+                {chanceAnim && (
+                    <div className="modal-overlay">
+                        <div className="modal" style={{background:'transparent', boxShadow:'none', border:'none', pointerEvents: 'none'}}>
+                            
+                            {/* COIN ANIMATION */}
+                            {chanceAnim === 'coin' && (
+                                <div className="coin-container">
+                                    <div 
+                                        className={`coin ${chanceResult === 'HEADS' ? 'flip-to-heads' : 'flip-to-tails'}`} 
+                                        onAnimationEnd={() => {
+                                            setWinner(chanceResult); // Show final text
+                                            playSound('win', audioCtxRef, soundTheme);
+                                            FireConfetti(confettiCanvasRef.current);
+                                        }}
+                                    >
+                                        <div className="coin-face face-heads">
+                                            <div style={{fontSize:'3rem'}}>🤴</div>
+                                            <div>HEADS</div>
+                                        </div>
+                                        <div className="coin-face face-tails">
+                                            <div style={{fontSize:'3rem'}}>🦅</div>
+                                            <div>TAILS</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
+                            {/* DICE ANIMATION */}
+                            {chanceAnim === 'dice' && (
+                                <div className="dice-container">
+                                    <div 
+                                        className={`dice roll-to-${chanceResult}`} 
+                                        onAnimationEnd={() => {
+                                            setWinner("🎲 " + chanceResult);
+                                            playSound('win', audioCtxRef, soundTheme);
+                                            FireConfetti(confettiCanvasRef.current);
+                                        }}
+                                    >
+                                        <div className="dice-face df-1">1</div>
+                                        <div className="dice-face df-2">2</div>
+                                        <div className="dice-face df-3">3</div>
+                                        <div className="dice-face df-4">4</div>
+                                        <div className="dice-face df-5">5</div>
+                                        <div className="dice-face df-6">6</div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+                
                 {winner && !battleMode && (
                     <div className="modal-overlay">
          
@@ -1064,8 +1439,27 @@
 
                             <div style={{display: 'flex', flexDirection: 'column', gap: 12, marginTop: 20}}>
         
-                                 <button onClick={() => setWinner(null)} className="btn" style={{justifyContent: 'center', background: 'rgba(128,128,128,0.2)', padding: 12}}>Keep Name</button>
-                                <button onClick={removeWinner} className="btn" style={{justifyContent: 'center', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: 12}}><Icons.UserMinus/> Remove & Close</button>
+<div style={{display: 'flex', flexDirection: 'column', gap: 12, marginTop: 20}}>
+                                
+                                {/* CONDITION: Is this a Chance Tool (Coin, Dice, 1-10)? */}
+                                {(chanceAnim || tempWheelItems) ? (
+                                    /* YES: Show simple Close button */
+                                    <button onClick={removeWinner} className="btn" style={{justifyContent: 'center', background: 'rgba(255,255,255,0.1)', padding: 12}}>
+                                        Close
+                                    </button>
+                                ) : (
+                                    /* NO: Show Student Options (Keep vs Remove) */
+                                    <>
+                                        <button onClick={() => setWinner(null)} className="btn" style={{justifyContent: 'center', background: 'rgba(128,128,128,0.2)', padding: 12}}>
+                                            Keep Name
+                                        </button>
+                                        <button onClick={removeWinner} className="btn" style={{justifyContent: 'center', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: 12}}>
+                                            <Icons.UserMinus/> Remove & Close
+                                        </button>
+                                    </>
+                                )}
+
+                            </div>
                  
                             </div>
                         </div>
