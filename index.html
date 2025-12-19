@@ -586,6 +586,32 @@ const HelpModal = ({ onClose }) => (
           
           // HEATMAP STATE
 // --- ANIMATION & UTILITIES STATE ---
+const [billboardText, setBillboardText] = useState("");
+// STICKY NOTES STATE
+          const [stickies, setStickies] = useState([]);
+
+          const addSticky = () => {
+              const colors = ['#fef3c7', '#dbeafe', '#fce7f3', '#dcfce7']; // Yellow, Blue, Pink, Green
+              const randomColor = colors[Math.floor(Math.random() * colors.length)];
+              const newNote = { 
+                  id: Date.now(), 
+                  text: "", 
+                  color: randomColor, 
+                  rotation: Math.random() * 6 - 3, // Random tilt (-3 to 3 degrees)
+                  x: 100 + Math.random() * 50, 
+                  y: 100 + Math.random() * 50 
+              };
+              setStickies([...stickies, newNote]);
+          };
+
+          const updateSticky = (id, newText) => {
+              setStickies(stickies.map(note => note.id === id ? { ...note, text: newText } : note));
+          };
+
+          const deleteSticky = (id) => {
+              setStickies(stickies.filter(note => note.id !== id));
+          };
+          const [showBillboard, setShowBillboard] = useState(false);
          const [trafficLight, setTrafficLight] = useState('green'); 
           const [trafficMode, setTrafficMode] = useState('sidebar'); // 'sidebar', 'floating', 'fullscreen' 
           const [scratchpad, setScratchpad] = useState(localStorage.getItem('spinner_scratchpad') || "");
@@ -630,24 +656,98 @@ const HelpModal = ({ onClose }) => (
 
           const theme = THEMES[currentThemeId];
 const activeNames = useMemo(() => tempWheelItems || names.filter(n => !hiddenNames.includes(n)), [names, hiddenNames, tempWheelItems]);          useEffect(() => { const saved = localStorage.getItem('spinner_lists'); if(saved) setSavedLists(JSON.parse(saved)); }, []);
+// 1. SMART SAVE (With Overwrite/Update Confirmation)
           const saveList = () => { 
-              if(!newListName.trim()) return;
-              const u={...savedLists,[newListName]:names}; 
-              setSavedLists(u); 
-              localStorage.setItem('spinner_lists',JSON.stringify(u)); 
-              setNewListName(""); 
-              alert(`Class "${newListName}" saved!`);
+              const nameToSave = newListName.trim();
+              if(!nameToSave) return;
+              
+              // CHECK: Does this class already exist?
+              if (savedLists[nameToSave]) {
+                  // Ask user if they want to UPDATE the existing class
+                  if (!window.confirm(`Class "${nameToSave}" already exists.\n\nDo you want to UPDATE it with the current names and settings?`)) {
+                      return; // User clicked Cancel
+                  }
+              }
+
+              // GATHER DATA (Names + All Settings)
+              const saveData = {
+                  names: names,
+                  theme: currentThemeId,
+                  bloomMode: bloomMode,
+                  battleMode: battleMode,
+                  mysteryMode: mysteryMode,
+                  concepts: concepts,
+                  soundTheme: soundTheme,
+                  fairMode: fairMode,
+                  rapidTarget: rapidTarget
+              };
+
+              // PERFORM SAVE
+              setSavedLists(prev => {
+                  const updated = {...prev, [nameToSave]: saveData};
+                  try { 
+                      localStorage.setItem('spinner_lists', JSON.stringify(updated)); 
+                  } catch(e) { 
+                      alert("Error: Could not save to browser storage (Quota Exceeded?)"); 
+                  }
+                  return updated;
+              });
+              
+              alert(`Class "${nameToSave}" saved successfully!`);
           };
-          const loadList = (e) => { 
-              const k = e.target.value;
-              if(savedLists[k]) { 
-                  setNames(savedLists[k]);
-                  setInputText(savedLists[k].join('\n')); 
-                  setHiddenNames([]);
-                  setParticipation({}); // Reset counts for new class
-              } 
+
+          // 2. SMART LOAD (Prepares for Update)
+          const handleLoadClass = (key) => {
+              const data = savedLists[key];
+              if (!data) return;
+
+              // AUTO-FILL Name Box (So you can easily Update/Resave)
+              setNewListName(key); 
+
+              // Load Names
+              if (Array.isArray(data)) {
+                  // Handle Old Format
+                  setNames(data);
+                  setInputText(data.join('\n'));
+                  setBattleMode(false); setBloomMode('off'); setMysteryMode(false);
+              } else {
+                  // Handle New Format (Names + Settings)
+                  if(data.names) { setNames(data.names); setInputText(data.names.join('\n')); }
+                  if(data.theme) setCurrentThemeId(data.theme);
+                  
+                  // Load Modes (Safe checks)
+                  if(data.bloomMode !== undefined) setBloomMode(data.bloomMode);
+                  if(data.battleMode !== undefined) setBattleMode(data.battleMode);
+                  if(data.mysteryMode !== undefined) setMysteryMode(data.mysteryMode);
+                  if(data.concepts) setConcepts(data.concepts);
+                  if(data.soundTheme) setSoundTheme(data.soundTheme);
+                  if(data.fairMode !== undefined) setFairMode(data.fairMode);
+                  if(data.rapidTarget) setRapidTarget(data.rapidTarget);
+              }
+              
+              // Reset Game State
+              setHiddenNames([]); 
+              setParticipation({});
+              setWinner(null);
           };
-          const deleteList = (k) => { const u={...savedLists}; delete u[k]; setSavedLists(u); localStorage.setItem('spinner_lists',JSON.stringify(u)); };
+
+          // 3. ROBUST DELETE (With "Are you sure?" Popup)
+          const handleDeleteClass = (e, key) => {
+              // PREVENT BUBBLING: Ensure click hits ONLY the delete button
+              e.preventDefault();
+              e.stopPropagation(); 
+              
+              // CONFIRMATION POPUP
+              if (window.confirm(`Are you sure you want to permanently delete "${key}"?\n\nThis cannot be undone.`)) {
+                  setSavedLists(prev => {
+                      const updated = { ...prev };
+                      delete updated[key];
+                      localStorage.setItem('spinner_lists', JSON.stringify(updated));
+                      return updated;
+                  });
+              }
+          };
+          
           const updateNames = (t) => { setInputText(t);
           setNames(t.split('\n').filter(n=>n.trim())); };
           const performImport = (l) => { setNames(l); setInputText(l.join('\n')); setShowImport(false); setHiddenNames([]); setParticipation({}); };
@@ -991,24 +1091,78 @@ const removeWinner = () => {
                     </div>
                     <div className="input-area">
                         
-                        {/* CLASS MANAGER */}
-     
+{/* CLASS MANAGER */}
                         <div>
                             <span className="section-title">Class Manager</span>
-                            <div style={{display:'flex', gap:8, marginBottom: 8}}>
-                   
-                                 <input value={newListName} onChange={(e) => setNewListName(e.target.value)} placeholder="Period 1..." style={{flex:1, padding: 8, borderRadius: 6, border: '1px solid rgba(128,128,128,0.2)', background:'transparent', color:'inherit'}} />
-                                <button onClick={saveList} className="btn" style={{background:'#7c3aed', color:'white', padding:'0 12px'}} title="Save List"><Icons.Save /></button>
                             
+                            {/* SAVE/UPDATE INPUT */}
+                            <div style={{display:'flex', gap:8, marginBottom: 8}}>
+                                <input 
+                                    value={newListName} 
+                                    onChange={(e) => setNewListName(e.target.value)} 
+                                    placeholder="Class Name..." 
+                                    style={{flex:1, padding: 8, borderRadius: 6, border: '1px solid rgba(128,128,128,0.2)', background:'transparent', color:'inherit'}} 
+                                />
+                                <button onClick={saveList} className="btn" style={{background:'#7c3aed', color:'white', padding:'0 12px'}} title="Save or Update Class">
+                                    <Icons.Save />
+                                </button>
                             </div>
+
+                            {/* SAVED CLASSES LIST */}
                             {Object.keys(savedLists).length > 0 && (
-                                <select onChange={loadList} style={{width:'100%', padding: 8, borderRadius: 6, border: '1px solid rgba(128,128,128,0.2)', background:'rgba(128,128,128,0.1)', color:'inherit', cursor:'pointer', outline:'none'}} defaultValue="">
-                     
-                                    <option value="" disabled>Load Saved Class...</option>
-                                    {Object.keys(savedLists).map(key => <option key={key} value={key} style={{color:'#000'}}>{key} ({savedLists[key].length})</option>)}
-                                </select>
-       
-                             )}
+                                <div style={{marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 150, overflowY: 'auto', paddingRight: 4}}>
+                                    <div style={{fontSize: '0.75rem', opacity: 0.5, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginBottom: 4}}>Saved Classes</div>
+                                    
+                                    {Object.keys(savedLists).map(key => (
+                                        <div key={key} 
+                                            style={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+                                                background: 'rgba(128,128,128,0.1)', padding: '4px', 
+                                                borderRadius: 6, border: '1px solid rgba(128,128,128,0.1)',
+                                                position: 'relative' 
+                                            }}
+                                        >
+                                            
+                                            {/* LOAD AREA (Click Name to Load) */}
+                                            <div 
+                                                onClick={() => handleLoadClass(key)}
+                                                style={{
+                                                    flex: 1, cursor: 'pointer', padding: '6px 8px', borderRadius: 4,
+                                                    fontWeight: 600, fontSize: '0.85rem', display:'flex', alignItems:'center', gap: 8,
+                                                    transition: '0.2s'
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                                title="Load this class"
+                                            >
+                                                <div style={{width: 8, height: 8, borderRadius: '50%', background: theme.accent}}></div>
+                                                <div style={{display:'flex', flexDirection:'column'}}>
+                                                    <span>{key}</span>
+                                                    <span style={{fontSize:'0.7rem', opacity:0.6, fontWeight:400}}>
+                                                        {Array.isArray(savedLists[key]) ? `${savedLists[key].length} students` : `${savedLists[key].names.length} students`}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* DELETE BUTTON */}
+                                            <button 
+                                                onClick={(e) => handleDeleteClass(e, key)}
+                                                className="btn"
+                                                style={{
+                                                    background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', 
+                                                    padding: 0, height: 32, width: 32, justifyContent:'center', borderRadius: 6,
+                                                    border: '1px solid rgba(239, 68, 68, 0.2)', marginLeft: 4,
+                                                    zIndex: 20, position: 'relative', cursor: 'pointer'
+                                                }}
+                                                title="Delete Class"
+                                                type="button"
+                                            >
+                                                <Icons.Trash />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                          <div style={{marginTop: 20, display: 'flex', flexDirection: 'column'}}> 
@@ -1200,6 +1354,34 @@ const removeWinner = () => {
                              )}
                         </div>
 
+{/* 4. BILLBOARD WIDGET */}
+                        <div style={{marginTop: 20}}>
+                             <span className="section-title">Big Message (Billboard)</span>
+                             <div style={{display:'flex', gap:8}}>
+                                 <input 
+                                    value={billboardText} 
+                                    onChange={(e) => setBillboardText(e.target.value)} 
+                                    placeholder="Ex: Turn to page 42..." 
+                                    style={{flex:1, padding: 8, borderRadius: 6, border: '1px solid rgba(128,128,128,0.2)', background:'transparent', color:'inherit'}} 
+                                 />
+                                 <button 
+                                    onClick={() => setShowBillboard(!showBillboard)} 
+                                    className="btn" 
+                                    style={{background: showBillboard ? theme.accent : 'rgba(255,255,255,0.1)', width: 45, justifyContent:'center'}} 
+                                    title={showBillboard ? "Hide Message" : "Project Message"}
+                                 >
+                                     {showBillboard ? <Icons.EyeOff/> : <Icons.Maximize/>}
+                                 </button>
+                             </div>
+                        </div>
+
+{/* 5. STICKY NOTES BUTTON */}
+                        <div style={{marginTop: 20}}>
+                             <button onClick={addSticky} className="btn" style={{width:'100%', justifyContent:'center', background:'#fcd34d', color:'#78350f', fontWeight:'bold', boxShadow:'0 4px 0 #b45309'}}>
+                                 + Add Sticky Note
+                             </button>
+                        </div>
+
 {/* 3. SCRATCHPAD */}
                         <div style={{marginTop: 20}}>
                              <span className="section-title">Quick Notes (Auto-Saved)</span>
@@ -1235,6 +1417,174 @@ const removeWinner = () => {
                 </div>
 
                 <div className="main">
+
+{/* BILLBOARD OVERLAY (Clean & Resizable) */}
+                    {showBillboard && (
+                        <DraggableBox x={50} y={50} style={{zIndex: 55}}>
+                            <div style={{
+                                background: 'rgba(15, 23, 42, 0.9)', 
+                                padding: '30px 40px', 
+                                borderRadius: 20, 
+                                border: '2px solid rgba(255,255,255,0.1)', 
+                                backdropFilter: 'blur(10px)', 
+                                boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+                                minWidth: '300px',
+                                maxWidth: '80vw',
+                                textAlign: 'center',
+                                position: 'relative', 
+                                resize: 'both',
+                                overflow: 'hidden'
+                            }}>
+                                {/* CLOSE BUTTON */}
+                                <button 
+                                    onClick={() => setShowBillboard(false)} 
+                                    style={{
+                                        position: 'absolute', top: 10, right: 10, 
+                                        background: 'none', border: 'none', color: '#ef4444', 
+                                        cursor: 'pointer', fontWeight: 'bold', fontSize: '1.2rem'
+                                    }}
+                                    title="Close Billboard"
+                                >
+                                    <Icons.X />
+                                </button>
+
+                                {/* CONTENT (No helper text) */}
+                                <div style={{
+                                    fontSize: 'clamp(2rem, 5vw, 4rem)', 
+                                    fontWeight: 800, 
+                                    lineHeight: 1.2,
+                                    whiteSpace: 'pre-wrap'
+                                }}>
+                                    {billboardText || "Class Message"}
+                                </div>
+                            </div>
+                        </DraggableBox>
+                    )}
+
+                    {/* STICKY NOTES LAYER (Resizable) */}
+                    {stickies.map(note => (
+                        <DraggableBox key={note.id} x={note.x} y={note.y} style={{zIndex: 56}}>
+                            <div style={{
+                                width: 200, 
+                                minHeight: 200, 
+                                background: note.color,
+                                boxShadow: '5px 5px 15px rgba(0,0,0,0.3)',
+                                transform: `rotate(${note.rotation}deg)`,
+                                padding: 12, 
+                                borderRadius: 2, 
+                                display: 'flex', 
+                                flexDirection: 'column',
+                                position: 'relative',
+                                resize: 'both',
+                                overflow: 'hidden'
+                            }}>
+                                {/* Close 'X' Button */}
+                                <button 
+                                    onClick={() => deleteSticky(note.id)} 
+                                    style={{
+                                        position: 'absolute', top: 5, right: 5,
+                                        color: '#000', opacity: 0.4, border: 'none', background: 'none', 
+                                        cursor: 'pointer', fontWeight: 'bold', zIndex: 10
+                                    }}
+                                    title="Delete Note"
+                                >
+                                    <Icons.X />
+                                </button>
+
+                                {/* The Note Input */}
+                                <textarea
+                                    value={note.text}
+                                    onChange={(e) => updateSticky(note.id, e.target.value)}
+                                    placeholder="Type note..."
+                                    style={{
+                                        flex: 1, 
+                                        width: '100%',
+                                        height: '100%',
+                                        background: 'transparent', 
+                                        border: 'none', 
+                                        outline: 'none', 
+                                        resize: 'none', 
+                                        color: '#333', 
+                                        fontFamily: '"Comic Sans MS", "Marker Felt", sans-serif', 
+                                        fontSize: '1.1rem',
+                                        lineHeight: 1.4,
+                                        marginTop: 14
+                                    }}
+                                />
+                                
+                                {/* Visual cue for resize handle in bottom-right */}
+                                <div style={{
+                                    position:'absolute', bottom: 2, right: 2, 
+                                    width: 12, height: 12, pointerEvents:'none',
+                                    borderBottom: '2px solid rgba(0,0,0,0.1)', 
+                                    borderRight: '2px solid rgba(0,0,0,0.1)'
+                                }}/>
+                            </div>
+                        </DraggableBox>
+                    ))}
+
+{/* STICKY NOTES LAYER (Resizable) */}
+                    {stickies.map(note => (
+                        <DraggableBox key={note.id} x={note.x} y={note.y} style={{zIndex: 56}}>
+                            <div style={{
+                                width: 200, 
+                                minHeight: 200, 
+                                background: note.color,
+                                boxShadow: '5px 5px 15px rgba(0,0,0,0.3)',
+                                transform: `rotate(${note.rotation}deg)`,
+                                padding: 12, 
+                                borderRadius: 2, 
+                                display: 'flex', 
+                                flexDirection: 'column',
+                                position: 'relative',
+                                resize: 'both',     // <--- Added Resize
+                                overflow: 'hidden'  // <--- Required for Resize
+                            }}>
+                                {/* Close 'X' Button */}
+                                <button 
+                                    onClick={() => deleteSticky(note.id)} 
+                                    style={{
+                                        position: 'absolute', top: 5, right: 5,
+                                        color: '#000', opacity: 0.4, border: 'none', background: 'none', 
+                                        cursor: 'pointer', fontWeight: 'bold', zIndex: 10
+                                    }}
+                                    title="Delete Note"
+                                >
+                                    <Icons.X />
+                                </button>
+
+                                {/* The Note Input */}
+                                <textarea
+                                    value={note.text}
+                                    onChange={(e) => updateSticky(note.id, e.target.value)}
+                                    placeholder="Type note..."
+                                    style={{
+                                        flex: 1, 
+                                        width: '100%', /* Ensure text area grows */
+                                        height: '100%',
+                                        background: 'transparent', 
+                                        border: 'none', 
+                                        outline: 'none', 
+                                        resize: 'none', /* Disable internal text drag, use container instead */
+                                        color: '#333', 
+                                        fontFamily: '"Comic Sans MS", "Marker Felt", sans-serif', 
+                                        fontSize: '1.1rem',
+                                        lineHeight: 1.4,
+                                        marginTop: 14
+                                    }}
+                                />
+                                
+                                {/* Visual cue for resize handle in bottom-right */}
+                                <div style={{
+                                    position:'absolute', bottom: 2, right: 2, 
+                                    width: 12, height: 12, pointerEvents:'none',
+                                    borderBottom: '2px solid rgba(0,0,0,0.1)', 
+                                    borderRight: '2px solid rgba(0,0,0,0.1)'
+                                }}/>
+                            </div>
+                        </DraggableBox>
+                    ))}
+
 {/* TRAFFIC LIGHT OVERLAY (Floating or Fullscreen) */}
                     {trafficMode !== 'sidebar' && (
                         trafficMode === 'fullscreen' ? (
