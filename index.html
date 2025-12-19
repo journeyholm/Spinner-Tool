@@ -1237,20 +1237,20 @@ const removeWinner = () => {
                         
 {/* CLASS MANAGER */}
                         <div>
-                            <span className="section-title">Class Manager</span>
-                            
-                            {/* SAVE/UPDATE INPUT */}
-                            <div style={{display:'flex', gap:8, marginBottom: 8}}>
-                                <input 
-                                    value={newListName} 
-                                    onChange={(e) => setNewListName(e.target.value)} 
-                                    placeholder="Class Name..." 
-                                    style={{flex:1, padding: 8, borderRadius: 6, border: '1px solid rgba(128,128,128,0.2)', background:'transparent', color:'inherit'}} 
-                                />
-                                <button onClick={saveList} className="btn" style={{background:'#7c3aed', color:'white', padding:'0 12px'}} title="Save or Update Class">
-                                    <Icons.Save />
-                                </button>
-                            </div>
+<div style={{display:'flex', gap:4}}>
+                                    {/* NEW IMPORT BUTTON */}
+                                    <button onClick={() => setShowImport(true)} className="btn" style={{padding:'2px 6px', fontSize:'0.7rem', background: 'rgba(128,128,128,0.1)'}} title="Import List">
+                                       <Icons.Clipboard /> Import
+                                    </button>
+
+                                    <button onClick={() => setShowHeatmap(!showHeatmap)} className="btn" style={{padding:'2px 6px', fontSize:'0.7rem', background: showHeatmap ? theme.accent : 'rgba(128,128,128,0.1)'}}>
+                                       <Icons.BarChart /> {showHeatmap ? 'Editor' : 'Heatmap'}
+                                    </button>
+                                    
+                                    {(hiddenNames.length > 0 || Object.keys(participation).length > 0) && (
+                                       <button onClick={() => {setHiddenNames([]); setParticipation({})}} style={{fontSize:'0.7rem', color: '#ef4444', background:'none', border:'none', cursor:'pointer'}}><Icons.Refresh /> Reset</button>
+                                    )}
+                                 </div>
 
                             {/* SAVED CLASSES LIST */}
                             {Object.keys(savedLists).length > 0 && (
@@ -1308,22 +1308,25 @@ const removeWinner = () => {
                                 </div>
                             )}
                         </div>
-
-                         <div style={{marginTop: 20, display: 'flex', flexDirection: 'column'}}> 
-                            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                        
+<div style={{marginTop: 20, display: 'flex', flexDirection: 'column'}}>
+<div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
                                 <span className="section-title">Names ({activeNames.length}/{names.length})</span>
-                    
-                                 <div style={{display:'flex', gap:4}}>
-                                    <button onClick={() => setShowHeatmap(!showHeatmap)} className="btn" style={{padding:'2px 6px', fontSize:'0.7rem', background: showHeatmap ?
-                                    theme.accent : 'rgba(128,128,128,0.1)'}}>
-                                       <Icons.BarChart /> {showHeatmap ?
-                                    'Editor' : 'Heatmap'}
+                                <div style={{display:'flex', gap:4}}>
+                                    {/* IMPORT BUTTON */}
+                                    <button onClick={() => setShowImport(true)} className="btn" style={{padding:'2px 6px', fontSize:'0.7rem', background: 'rgba(128,128,128,0.1)'}} title="Import List">
+                                       <Icons.Clipboard /> Import
                                     </button>
+
+                                    {/* HEATMAP BUTTON */}
+                                    <button onClick={() => setShowHeatmap(!showHeatmap)} className="btn" style={{padding:'2px 6px', fontSize:'0.7rem', background: showHeatmap ? theme.accent : 'rgba(128,128,128,0.1)'}}>
+                                       <Icons.BarChart /> {showHeatmap ? 'Editor' : 'Heatmap'}
+                                    </button>
+                                    
+                                    {/* RESET BUTTON */}
                                     {(hiddenNames.length > 0 || Object.keys(participation).length > 0) && (
-                  
                                        <button onClick={() => {setHiddenNames([]); setParticipation({})}} style={{fontSize:'0.7rem', color: '#ef4444', background:'none', border:'none', cursor:'pointer'}}><Icons.Refresh /> Reset</button>
                                     )}
-                              
                                  </div>
                             </div>
                             
@@ -1369,47 +1372,62 @@ const removeWinner = () => {
                              )}
                         </div>
 
-                        <div style={{marginTop: 20}}> 
-                            <span className="section-title">Tools</span>
-                            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8}}>
+<div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8}}>
                                 
-                                {/* SHUFFLE */}
+                                {/* ROW 1: Shuffle & Mystery */}
                                 <button onClick={shuffleNames} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>
                                     <Icons.Shuffle/> Shuffle
                                 </button>
 
-                                {/* MYSTERY MODE */}
                                 <button onClick={() => setMysteryMode(!mysteryMode)} className="btn" 
                                     style={{
                                         background: mysteryMode ? theme.accent : 'rgba(128,128,128,0.1)', 
                                         color: mysteryMode ? '#fff' : 'inherit',
-                                        boxShadow: mysteryMode ? `0 0 10px ${theme.accent}` : 'none', // GLOW EFFECT
+                                        boxShadow: mysteryMode ? `0 0 10px ${theme.accent}` : 'none',
                                         transition: 'all 0.3s ease'
                                     }}>
                                     {mysteryMode ? <Icons.EyeOff/> : <Icons.Eye/>} {mysteryMode ? 'Mystery On' : 'Visible'}
                                 </button>
                                 
-                                {/* BATTLE MODE */}
+                                {/* ROW 2: Battle & Fair Mode */}
                                 <button onClick={() => {setBattleMode(!battleMode); setBloomMode('off'); setBattleStage('idle'); setRapidMode(false);}} className="btn" 
                                     style={{
                                         background: battleMode ? '#f59e0b' : 'rgba(128,128,128,0.1)', 
                                         color: battleMode ? '#fff' : 'inherit',
-                                        boxShadow: battleMode ? '0 0 10px #f59e0b' : 'none' // GLOW EFFECT
+                                        boxShadow: battleMode ? '0 0 10px #f59e0b' : 'none'
                                     }}>
                                     <Icons.Swords/> Battle
                                 </button>
 
-                                {/* FAIR MODE */}
                                 <button onClick={() => setFairMode(!fairMode)} className="btn" 
                                     style={{
                                         background: fairMode ? '#10b981' : 'rgba(128,128,128,0.1)', 
                                         color: fairMode ? '#fff' : 'inherit',
-                                        boxShadow: fairMode ? '0 0 10px #10b981' : 'none' // GLOW EFFECT
+                                        boxShadow: fairMode ? '0 0 10px #10b981' : 'none'
                                     }}>
                                     <Icons.Scales/> Fair Mode
                                 </button>
 
-                                {/* CONCEPT MODE */}
+                                {/* ROW 3: Noise & Teams */}
+                                <button onClick={() => setShowNoiseMeter(!showNoiseMeter)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>🎤 Noise Meter</button>
+                                <button onClick={() => setShowGroups(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}><Icons.Users/> Teams</button>
+                                
+                                {/* ROW 4: Strategy & Poll */}
+                                <button onClick={() => setShowBrainBreak(!showBrainBreak)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>⚡ Strategy</button>
+                                <button onClick={() => setShowPoll(!showPoll)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>📊 Poll</button>
+                                
+                                {/* ROW 5: Lineup & Timer (MOVED UP) */}
+                                <button onClick={generateLineup} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>📜 Lineup</button>
+                                <button onClick={() => setShowTimer(!showTimer)} className="btn" 
+                                    style={{
+                                        background: showTimer ? theme.accent : 'rgba(128,128,128,0.1)', 
+                                        color: showTimer ? '#fff' : 'inherit',
+                                        justifyContent: 'center'
+                                    }}>
+                                    <Icons.Clock/> {showTimer ? "Hide Timer" : "Timer"}
+                                </button>
+
+                                {/* ROW 6: CONCEPT MODE (MOVED TO BOTTOM) */}
                                 <div style={{display:'flex', gap: 4, gridColumn: 'span 2'}}>
                                     <button onClick={toggleBloomMode} className="btn" 
                                         style={{
@@ -1423,26 +1441,7 @@ const removeWinner = () => {
                                     <button onClick={() => setShowConceptEdit(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)', padding: 10}} title="Edit Concepts"><Icons.Edit/></button>
                                 </div>
 
-                                {/* UTILITIES */}
-                                <button onClick={() => setShowNoiseMeter(!showNoiseMeter)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>🎤 Noise Meter</button>
-                                <button onClick={() => setShowImport(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}><Icons.Clipboard/> Import</button>
-                                <button onClick={() => setShowGroups(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}><Icons.Users/> Teams</button>
-                                <button onClick={() => setShowBrainBreak(!showBrainBreak)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>⚡ Strategy</button>
-                                <button onClick={() => setShowPoll(!showPoll)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>📊 Poll</button>
-                                <button onClick={generateLineup} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>📜 Lineup</button>
-                                
-                                {/* TIMER (Full Width) */}
-                                <button onClick={() => setShowTimer(!showTimer)} className="btn" 
-                                    style={{
-                                        gridColumn: 'span 2',
-                                        background: showTimer ? theme.accent : 'rgba(128,128,128,0.1)', 
-                                        color: showTimer ? '#fff' : 'inherit',
-                                        justifyContent: 'center'
-                                    }}>
-                                    <Icons.Clock/> {showTimer ? "Hide Timer" : "Open Timer"}
-                                </button>
                             </div>
-                        </div>
 
                         {/* RAPID FIRE SECTION */}
         
