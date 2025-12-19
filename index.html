@@ -618,6 +618,64 @@ const [billboardText, setBillboardText] = useState("");
           const [tempWheelItems, setTempWheelItems] = useState(null); // Allows temporarily swapping the list
           const [chanceAnim, setChanceAnim] = useState(null); // 'coin', 'dice'
           const [chanceResult, setChanceResult] = useState(null);
+          // --- BRAIN BREAK / KAGAN STRATEGY STATE ---
+          const [showBrainBreak, setShowBrainBreak] = useState(false);
+          const [breakAnim, setBreakAnim] = useState(false);
+          const [currentBreak, setCurrentBreak] = useState({ 
+              title: "Ready?", icon: "🚀", desc: "Click 'New Activity' to pick a strategy." 
+          });
+
+          const kaganStrategies = [
+              { title: "Think-Pair-Share", icon: "🤔", desc: "1. Think about the answer silently.\n2. Pair up with a neighbor.\n3. Share your thoughts." },
+              { title: "RallyRobin", icon: "🦜", desc: "1. Pair up.\n2. Partner A shares one idea.\n3. Partner B shares one idea.\n4. Repeat back and forth." },
+              { title: "RoundRobin", icon: "🔄", desc: "1. In teams of 4.\n2. Student 1 shares.\n3. Go clockwise: Student 2, 3, 4 share.\n4. Continue until time is up." },
+              { title: "Stand Up, Hand Up, Pair Up", icon: "✋", desc: "1. Stand up and raise a hand.\n2. Walk around until you find a partner.\n3. High five, put hands down, and discuss." },
+              { title: "Mix-Pair-Share", icon: "🔀", desc: "1. Class mixes around the room to music.\n2. Music stops: Pair with closest person.\n3. Teacher asks a question to discuss." },
+              { title: "Timed Pair Share", icon: "⏱️", desc: "1. Partner A speaks for 30-60 seconds (Partner B listens).\n2. Partner B responds/praises.\n3. Switch roles." },
+              { title: "RallyCoach", icon: "🏋️", desc: "1. Partner A solves the problem.\n2. Partner B watches and coaches.\n3. Partner B praises.\n4. Switch roles for next problem." },
+              { title: "Fan-N-Pick", icon: "🃏", desc: "1. S1 fans the cards.\n2. S2 picks a card & reads it.\n3. S3 answers.\n4. S4 paraphrases/praises.\n5. Rotate roles." },
+              { title: "Inside-Outside Circle", icon: "⭕", desc: "1. Form two circles (inner facing out, outer facing in).\n2. Face a partner.\n3. Discuss/Quiz.\n4. Outer circle rotates one step left." },
+              { title: "Quiz-Quiz-Trade", icon: "🔁", desc: "1. Everyone has a card.\n2. Find a partner.\n3. Quiz each other.\n4. Trade cards and find a new partner." },
+              { title: "One Stray", icon: "🐕", desc: "1. Team works on a problem.\n2. One teammate 'strays' to a new team to share/compare answers.\n3. Strayer returns and reports back." },
+              { title: "Gallery Walk", icon: "🖼️", desc: "1. Post work on walls.\n2. Teams rotate from poster to poster.\n3. Leave feedback on sticky notes." },
+              { title: "Jigsaw", icon: "🧩", desc: "1. Become an expert on one topic.\n2. Form new groups with experts from other topics.\n3. Teach your piece to the group." },
+              { title: "Numbered Heads", icon: "🔢", desc: "1. Students number off 1-4.\n2. Team discusses question.\n3. Teacher calls a number (e.g., 'All 3s!').\n4. Only 3s answer." },
+              { title: "Showdown", icon: "🤠", desc: "1. Captain reads question.\n2. Everyone writes answer secretly.\n3. Captain calls 'Showdown!'.\n4. Compare and discuss." },
+              { title: "Talking Chips", icon: "🪙", desc: "1. Everyone gets 2 chips.\n2. Place a chip in center to speak.\n3. Cannot speak again until all chips are used." },
+              { title: "Find Someone Who", icon: "🕵️", desc: "1. Walk around with a worksheet.\n2. Find a classmate who knows an answer.\n3. Have them sign your sheet." },
+              { title: "Corners", icon: "🏗️", desc: "1. Teacher labels corners (A, B, C, D).\n2. Students move to their choice.\n3. Pair up in your corner and discuss why." },
+              { title: "3-Step Interview", icon: "🎤", desc: "1. A interviews B.\n2. C interviews D.\n3. RoundRobin: Everyone shares what their partner said." },
+              { title: "Team Stand-N-Share", icon: "🧍", desc: "1. All teams stand.\n2. Team 1 shares an idea.\n3. Other teams sit if they had the same idea on their list." },
+              { title: "Spend-A-Buck", icon: "💵", desc: "1. Each student has $1.00 (4 quarters) to vote.\n2. Place quarters on preferred options.\n3. Option with most money wins." },
+              { title: "Carousel Feedback", icon: "🎠", desc: "1. Projects on desks.\n2. Teams rotate desk-to-desk.\n3. Discuss and leave feedback forms." },
+              { title: "Stir-the-Class", icon: "🥄", desc: "1. Teams stand in circle.\n2. Teacher asks question.\n3. Teams huddle. S1 moves to next team to share answer." },
+              { title: "Telephone", icon: "📞", desc: "1. S1 whispers message to S2.\n2. Continue down the line.\n3. Last person says it out loud. Compare to original." },
+              { title: "Pairs Compare", icon: "👯", desc: "1. Shoulder partners list ideas.\n2. Pair with another couple.\n3. Compare lists and add missing items." }
+          ];
+
+          const pickBrainBreak = () => {
+              setBreakAnim(true);
+              let count = 0; const max = 12;
+              const interval = setInterval(() => {
+                  const randomIdx = Math.floor(Math.random() * kaganStrategies.length);
+                  setCurrentBreak(kaganStrategies[randomIdx]);
+                  count++;
+                  if (count >= max) {
+                      clearInterval(interval);
+                      setBreakAnim(false);
+                      playSound('win', audioCtxRef, soundTheme);
+                  } else {
+                      playSound('tick', audioCtxRef, soundTheme);
+                  }
+              }, 100);
+          };
+
+          // --- QUICK POLL STATE ---
+          const [showPoll, setShowPoll] = useState(false);
+          const [pollCounts, setPollCounts] = useState({ A: 0, B: 0, C: 0, D: 0 });
+          const updatePoll = (key, delta) => {
+              setPollCounts(prev => ({ ...prev, [key]: Math.max(0, prev[key] + delta) }));
+          };
 
           useEffect(() => { localStorage.setItem('spinner_scratchpad', scratchpad); }, [scratchpad]);
 
@@ -1282,6 +1340,8 @@ const removeWinner = () => {
                                 {/* UTILITIES */}
                                 <button onClick={() => setShowImport(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}><Icons.Clipboard/> Import</button>
                                 <button onClick={() => setShowGroups(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}><Icons.Users/> Teams</button>
+                                <button onClick={() => setShowBrainBreak(!showBrainBreak)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>⚡ Strategy</button>
+                                <button onClick={() => setShowPoll(!showPoll)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>📊 Poll</button>
                                 
                                 {/* TIMER (Full Width) */}
                                 <button onClick={() => setShowTimer(!showTimer)} className="btn" 
@@ -1584,7 +1644,97 @@ const removeWinner = () => {
                             </div>
                         </DraggableBox>
                     ))}
+{/* KAGAN STRATEGY WIDGET */}
+                    {showBrainBreak && (
+                        <DraggableBox x={100} y={150} style={{zIndex: 55}}>
+                            <div style={{
+                                background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', 
+                                padding: 0, borderRadius: 16, width: 320, textAlign: 'center',
+                                boxShadow: '0 15px 40px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)',
+                                overflow: 'hidden', display: 'flex', flexDirection: 'column'
+                            }}>
+                                {/* HEADER */}
+                                <div style={{padding: '12px 16px', background:'rgba(0,0,0,0.2)', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                                    <span style={{fontWeight:800, color:'white', textTransform:'uppercase', fontSize:'0.9rem', letterSpacing:1}}>⚡ Class Strategy</span>
+                                    <button onClick={() => setShowBrainBreak(false)} style={{background:'none', border:'none', color:'white', cursor:'pointer'}}><Icons.X/></button>
+                                </div>
 
+                                {/* CARD CONTENT */}
+                                <div style={{padding: 20, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: 250}}>
+                                    
+                                    {/* ICON */}
+                                    <div style={{
+                                        fontSize: '4rem', marginBottom: 10, 
+                                        transform: breakAnim ? 'scale(1.2) rotate(10deg)' : 'scale(1)',
+                                        transition: 'transform 0.1s'
+                                    }}>
+                                        {currentBreak.icon}
+                                    </div>
+
+                                    {/* TITLE */}
+                                    <div style={{fontSize:'1.4rem', fontWeight:800, color:'white', marginBottom:12, lineHeight:1.1}}>
+                                        {currentBreak.title}
+                                    </div>
+
+                                    {/* INSTRUCTIONS */}
+                                    <div style={{
+                                        background:'rgba(255,255,255,0.1)', padding: 12, borderRadius: 8, 
+                                        width: '100%', fontSize: '0.9rem', color: 'rgba(255,255,255,0.9)', 
+                                        textAlign: 'left', whiteSpace: 'pre-line', lineHeight: 1.4,
+                                        flex: 1
+                                    }}>
+                                        {currentBreak.desc}
+                                    </div>
+                                </div>
+
+                                {/* FOOTER BUTTON */}
+                                <div style={{padding: 16, paddingTop: 0}}>
+                                    <button onClick={pickBrainBreak} className="btn" 
+                                        disabled={breakAnim}
+                                        style={{
+                                            width:'100%', justifyContent:'center', background:'white', color:'#6d28d9', 
+                                            fontWeight:800, padding: 12, borderRadius: 10,
+                                            transform: breakAnim ? 'scale(0.98)' : 'scale(1)',
+                                            opacity: breakAnim ? 0.7 : 1
+                                        }}>
+                                        <Icons.Shuffle/> {breakAnim ? "Spinning..." : "New Activity"}
+                                    </button>
+                                </div>
+                            </div>
+                        </DraggableBox>
+                    )}
+
+                    {/* QUICK POLL WIDGET */}
+                    {showPoll && (
+                        <DraggableBox x={150} y={250} style={{zIndex: 55}}>
+                            <div style={{
+                                background: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(10px)',
+                                padding: 16, borderRadius: 16, width: 280,
+                                boxShadow: '0 10px 30px rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)'
+                            }}>
+                                <div style={{display:'flex',justifyContent:'space-between', marginBottom:15, alignItems:'center'}}>
+                                    <span style={{fontWeight:800, color:'#94a3b8', textTransform:'uppercase', fontSize:'0.8rem'}}>Class Vote</span>
+                                    <div style={{display:'flex', gap:8}}>
+                                        <button onClick={() => setPollCounts({A:0,B:0,C:0,D:0})} style={{fontSize:'0.7rem', color:'#94a3b8', background:'none', border:'none', cursor:'pointer'}}>Reset</button>
+                                        <button onClick={() => setShowPoll(false)} style={{background:'none', border:'none', color:'white', cursor:'pointer'}}><Icons.X/></button>
+                                    </div>
+                                </div>
+                                <div style={{display:'flex', gap:12, justifyContent:'space-between'}}>
+                                    {['A','B','C','D'].map((opt, i) => (
+                                        <div key={opt} style={{display:'flex', flexDirection:'column', alignItems:'center', gap:6, flex:1}}>
+                                            <div style={{fontWeight:800, color: i===0?'#ef4444':i===1?'#3b82f6':i===2?'#eab308':'#22c55e'}}>{opt}</div>
+                                            <div style={{fontSize:'1.5rem', fontWeight:800}}>{pollCounts[opt]}</div>
+                                            <div style={{display:'flex', flexDirection:'column', gap:4, width:'100%'}}>
+                                                <button onClick={() => updatePoll(opt, 1)} style={{background:'rgba(255,255,255,0.1)', border:'none', color:'white', borderRadius:4, cursor:'pointer', padding:4}}>+</button>
+                                                <button onClick={() => updatePoll(opt, -1)} style={{background:'rgba(255,255,255,0.05)', border:'none', color:'#94a3b8', borderRadius:4, cursor:'pointer', padding:4}}>-</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </DraggableBox>
+                    )}
+                    
 {/* TRAFFIC LIGHT OVERLAY (Floating or Fullscreen) */}
                     {trafficMode !== 'sidebar' && (
                         trafficMode === 'fullscreen' ? (
