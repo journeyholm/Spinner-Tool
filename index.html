@@ -963,13 +963,20 @@
 
 const MarbleJar = ({ audioCtx, names, onClose, marbles, setMarbles, target, setTarget, reward, setReward }) => {
             // --- STATE ---
-            const [viewMode, setViewMode] = useState('window'); // 'window', 'full', 'mini'
+            const [viewMode, setViewMode] = useState('window'); 
             const [jarSize, setJarSize] = useState('medium'); 
             const [ballSize, setBallSize] = useState('medium');
             const [labelMode, setLabelMode] = useState('number'); 
             const [raffleWinner, setRaffleWinner] = useState(null);
             const [isPlinko, setIsPlinko] = useState(false);
             const [isPhysicsReady, setIsPhysicsReady] = useState(false);
+            const [showWinBanner, setShowWinBanner] = useState(false);
+
+            // --- SLOT STATE ---
+            const [showSlots, setShowSlots] = useState(false);
+            const [slotType, setSlotType] = useState('numbers'); 
+            const [customSlotInput, setCustomSlotInput] = useState("A, B, C, D, E");
+            const [showSlotEditor, setShowSlotEditor] = useState(false);
             
             // --- REFS ---
             const sceneRef = useRef(null);
@@ -978,24 +985,38 @@ const MarbleJar = ({ audioCtx, names, onClose, marbles, setMarbles, target, setT
             const runnerRef = useRef(null);
             const jarWrapperRef = useRef(null);
 
-            // --- 1. SETUP PHYSICS (Run Once) ---
+            // --- WIN BANNER LOGIC ---
+            useEffect(() => {
+                if (marbles >= target && target > 0) {
+                    setShowWinBanner(true);
+                    const timer = setTimeout(() => setShowWinBanner(false), 3000);
+                    return () => clearTimeout(timer);
+                } else {
+                    setShowWinBanner(false);
+                }
+            }, [marbles, target]);
+
+            // --- HELPERS ---
+            const getSlotLabels = () => {
+                switch(slotType) {
+                    case 'prizes': return ["🍬 Candy", "🎵 DJ", "⭐ Star", "📝 Pass", "🎁 Box"];
+                    case 'teams': return ["Red", "Blue", "Green", "Yellow"];
+                    case 'multi': return ["x1", "x2", "x5", "x2", "x1"];
+                    case 'custom': return customSlotInput.split(',').map(s => s.trim()).filter(s => s.length > 0);
+                    default: return ["1", "2", "3", "4", "5"];
+                }
+            };
+
+            // --- 1. SETUP PHYSICS ---
             useEffect(() => {
                 if (viewMode === 'mini') return;
-
-                // Cleanup any existing engine
+                
+                // Cleanup and restart physics when settings change
                 cleanupPhysics();
-
-                // Wait 150ms for the flexbox layout to stabilize before measuring
-                const timer = setTimeout(() => {
-                    initPhysics();
-                }, 150);
-
-                return () => {
-                    clearTimeout(timer);
-                    cleanupPhysics();
-                };
-            }, [viewMode, jarSize, isPlinko]); 
-
+                const timer = setTimeout(() => { initPhysics(); }, 150);
+                
+                return () => { clearTimeout(timer); cleanupPhysics(); };
+            }, [viewMode, jarSize, isPlinko, showSlots, slotType, customSlotInput]); 
 
             const cleanupPhysics = () => {
                 setIsPhysicsReady(false);
@@ -1011,9 +1032,10 @@ const MarbleJar = ({ audioCtx, names, onClose, marbles, setMarbles, target, setT
             };
 
             const initPhysics = () => {
-                // 1. MEASURE CONTAINER STRICTLY
-                // We rely entirely on the DOM element size (which respects flexbox)
-                // This ensures the jar fits exactly between Header and Footer
+                // Ensure Matter exists
+                if (typeof Matter === 'undefined') return;
+
+                // 1. MEASURE CONTAINER
                 let width = 0;
                 let height = 0;
 
@@ -1023,13 +1045,12 @@ const MarbleJar = ({ audioCtx, names, onClose, marbles, setMarbles, target, setT
                     height = rect.height;
                 }
 
-                // Retry loop if the layout isn't ready (width is 0)
+                // If container not ready, retry briefly then give up
                 if (width < 50 || height < 50) {
                     setTimeout(initPhysics, 50);
                     return;
                 }
 
-                // 2. CREATE ENGINE
                 const Engine = Matter.Engine;
                 const Render = Matter.Render;
                 const Runner = Matter.Runner;
@@ -1045,26 +1066,26 @@ const MarbleJar = ({ audioCtx, names, onClose, marbles, setMarbles, target, setT
                         height: height,
                         wireframes: false,
                         background: 'transparent',
-                        pixelRatio: window.devicePixelRatio
+                        pixelRatio: window.devicePixelRatio || 1
                     }
                 });
 
-                // 3. CREATE WALLS
+                // 2. BUILD WALLS
                 const wallOpts = { isStatic: true, render: { visible: false } };
-                
-                // Floor: Positioned at height + 250 (center of 500px block)
-                // This puts the top edge of the floor exactly at 'height'
+                // Floor is thick to catch fast falling objects
                 const ground = Bodies.rectangle(width / 2, height + 250, width, 500, wallOpts);
                 const leftWall = Bodies.rectangle(-25, height / 2, 50, height * 4, wallOpts);
                 const rightWall = Bodies.rectangle(width + 25, height / 2, 50, height * 4, wallOpts);
                 
-                // Funnel
-                const leftSlope = Bodies.rectangle(-20, -50, 200, 20, { isStatic: true, angle: Math.PI / 3, render: { visible: false } });
-                const rightSlope = Bodies.rectangle(width + 20, -50, 200, 20, { isStatic: true, angle: -Math.PI / 3, render: { visible: false } });
+                // Funnel (Disabled if Plinko is ON)
+                const funnelAngle = isPlinko ? 0 : Math.PI / 3;
+                const slopeOffset = isPlinko ? -200 : -20;
+                const leftSlope = Bodies.rectangle(slopeOffset, -50, 200, 20, { isStatic: true, angle: funnelAngle, render: { visible: false } });
+                const rightSlope = Bodies.rectangle(width - slopeOffset, -50, 200, 20, { isStatic: true, angle: -funnelAngle, render: { visible: false } });
 
                 const walls = [ground, leftWall, rightWall, leftSlope, rightSlope];
 
-                // 4. PLINKO PEGS
+                // 3. PLINKO PEGS
                 if (isPlinko) {
                     const pegRadius = 3;
                     const cols = Math.floor(width / 60);
@@ -1083,31 +1104,71 @@ const MarbleJar = ({ audioCtx, names, onClose, marbles, setMarbles, target, setT
                         }
                     }
                 }
+
+                // 4. SLOTS
+                if (showSlots) {
+                    const labels = getSlotLabels();
+                    const count = labels.length;
+                    const slotWidth = width / count;
+                    const dividerHeight = 120; 
+                    const dividerY = height - (dividerHeight / 2); 
+
+                    for (let i = 1; i < count; i++) {
+                        const x = i * slotWidth;
+                        walls.push(Bodies.rectangle(x, dividerY, 6, dividerHeight, { 
+                            isStatic: true, 
+                            render: { fillStyle: 'rgba(255,255,255,0.2)' } 
+                        }));
+                    }
+                }
+
                 World.add(engine.world, walls);
 
                 // 5. RESPAWN MARBLES
                 if (marbles > 0) {
                     const balls = [];
                     for(let i=0; i<marbles; i++) {
-                        // Dynamic Radius
+                        // Dynamic Radius based on container width
                         const baseRadius = Math.min(width, height) * 0.05; 
                         let r = baseRadius; 
                         if (ballSize === 'small') r = baseRadius * 0.7;
                         if (ballSize === 'large') r = baseRadius * 1.3;
 
-                        // Spread x
-                        const x = (width/2) + (Math.random() * 40 - 20);
-                        // Stack y
-                        const y = height - 50 - (i * (r*2));
+                        // Randomize X across 90% of width
+                        const safeWidth = width * 0.9;
+                        const x = (width * 0.05) + (Math.random() * safeWidth);
                         
+                        const y = height - 50 - (i * (r*2));
+                        // Create and push
                         balls.push(createMarbleBody(width, false, i+1, x, y, r));
                     }
                     World.add(engine.world, balls);
                 }
 
-                // 6. RENDER TEXT LOOP
+                // 6. RENDER LOOP
                 Matter.Events.on(render, 'afterRender', function() {
                     const context = render.context;
+                    
+                    // Draw Slot Labels
+                    if (showSlots) {
+                        const labels = getSlotLabels();
+                        const count = labels.length;
+                        const slotWidth = width / count;
+                        
+                        context.textAlign = 'center';
+                        context.textBaseline = 'bottom';
+                        context.fillStyle = 'rgba(255,255,255,0.9)';
+                        const fontSize = Math.min(16, width / (count * 4)); 
+                        context.font = `bold ${Math.max(10, fontSize)}px Arial`;
+
+                        labels.forEach((label, i) => {
+                            const x = (i * slotWidth) + (slotWidth / 2);
+                            const y = height - 10;
+                            context.fillText(label, x, y);
+                        });
+                    }
+
+                    // Draw Marble Labels
                     const bodies = Matter.Composite.allBodies(engine.world);
                     context.textAlign = 'center';
                     context.textBaseline = 'middle';
@@ -1127,7 +1188,7 @@ const MarbleJar = ({ audioCtx, names, onClose, marbles, setMarbles, target, setT
                     });
                 });
 
-                // 7. START ENGINE
+                // Start
                 engineRef.current = engine;
                 renderRef.current = render;
                 runnerRef.current = Runner.create();
@@ -1142,7 +1203,6 @@ const MarbleJar = ({ audioCtx, names, onClose, marbles, setMarbles, target, setT
             // --- HELPER: Marble Factory ---
             const createMarbleBody = (containerWidth, isGold, num, startX, startY, specificRadius = null) => {
                 const plinkoMod = isPlinko ? 0.6 : 1.0;
-                
                 let radius = specificRadius;
                 if (!radius) {
                     const baseRadius = Math.min(containerWidth, 800) * 0.05; 
@@ -1159,11 +1219,11 @@ const MarbleJar = ({ audioCtx, names, onClose, marbles, setMarbles, target, setT
                 const fillColor = isGold ? '#fcd34d' : '#f8fafc';
 
                 let label = isGold ? "+5" : (labelMode === 'number' ? num.toString() : "?");
-                if (labelMode === 'name' && names.length > 0 && !isGold) {
+                if (labelMode === 'name' && names && names.length > 0 && !isGold) {
                     label = names[Math.floor(Math.random() * names.length)];
                 }
 
-                const ball = Matter.Bodies.circle(startX, startY, radius, {
+                return Matter.Bodies.circle(startX, startY, radius, {
                     restitution: isGold ? 0.4 : 0.6,
                     friction: 0.005,
                     density: isGold ? 0.1 : 0.05,
@@ -1176,44 +1236,48 @@ const MarbleJar = ({ audioCtx, names, onClose, marbles, setMarbles, target, setT
                         lineWidth: isGold ? 4 : radius * 0.3
                     }
                 });
-                Matter.Body.setAngularVelocity(ball, Math.random() * 0.2 - 0.1);
-                return ball;
             };
 
 
             // --- ACTIONS ---
             const addMarble = () => {
-                if (viewMode === 'mini') { setMarbles(m => m + 1); playSound('clink', audioCtx); return; }
+                if (typeof playSound === 'function') playSound('clink', audioCtx);
+                if (viewMode === 'mini') { setMarbles(m => m + 1); return; }
                 if (!isPhysicsReady || !engineRef.current || !renderRef.current) return;
                 
                 const w = renderRef.current.options.width;
-                const ball = createMarbleBody(w, false, marbles + 1, (w/2) + (Math.random()*40 - 20), -50);
+                const safeWidth = w * 0.9;
+                const x = (w * 0.05) + (Math.random() * safeWidth);
+                
+                const ball = createMarbleBody(w, false, marbles + 1, x, -50);
                 
                 Matter.World.add(engineRef.current.world, ball);
                 setMarbles(m => m + 1);
-                playSound('clink', audioCtx);
                 checkWin(marbles + 1);
             };
 
             const addGoldMarble = () => {
-                if (viewMode === 'mini') { setMarbles(m => m + 5); playSound('win', audioCtx); return; }
+                if (typeof playSound === 'function') playSound('win', audioCtx);
+                if (viewMode === 'mini') { setMarbles(m => m + 5); return; }
                 if (!isPhysicsReady || !engineRef.current || !renderRef.current) return;
 
                 const w = renderRef.current.options.width;
-                const ball = createMarbleBody(w, true, 0, (w/2) + (Math.random()*40 - 20), -50);
+                const safeWidth = w * 0.9;
+                const x = (w * 0.05) + (Math.random() * safeWidth);
+
+                const ball = createMarbleBody(w, true, 0, x, -50);
                 
                 Matter.World.add(engineRef.current.world, ball);
                 setMarbles(m => m + 5);
-                playSound('drumroll', audioCtx); 
                 checkWin(marbles + 5);
             };
 
             const checkWin = (currentCount) => {
                 if (currentCount >= target) {
                     setTimeout(() => {
-                        playSound('win', audioCtx);
+                        if (typeof playSound === 'function') playSound('win', audioCtx);
                         const canvas = document.querySelector('canvas'); 
-                        if(canvas) FireConfetti(canvas);
+                        if(canvas && typeof FireConfetti === 'function') FireConfetti(canvas);
                     }, 500);
                 }
             };
@@ -1226,11 +1290,13 @@ const MarbleJar = ({ audioCtx, names, onClose, marbles, setMarbles, target, setT
                 if (marblesOnly.length > 0) {
                     const winnerBody = marblesOnly[Math.floor(Math.random() * marblesOnly.length)];
                     setRaffleWinner(winnerBody.customLabel);
-                    playSound('drumroll', audioCtx);
+                    if (typeof playSound === 'function') {
+                        playSound('drumroll', audioCtx);
+                        setTimeout(() => playSound('win', audioCtx), 1000);
+                    }
                     winnerBody.render.fillStyle = '#fcd34d'; 
                     winnerBody.render.strokeStyle = '#fff';
                     Matter.Body.setVelocity(winnerBody, { x: 0, y: -20 });
-                    setTimeout(() => { playSound('win', audioCtx); }, 1000);
                 }
             };
 
@@ -1268,7 +1334,7 @@ const MarbleJar = ({ audioCtx, names, onClose, marbles, setMarbles, target, setT
                         Matter.Body.applyForce(body, body.position, { x: (Math.random() - 0.5) * 0.3, y: -(Math.random() * 0.3 + 0.1) });
                     }
                 });
-                playSound('clink', audioCtx);
+                if (typeof playSound === 'function') playSound('clink', audioCtx);
             };
 
             // --- RENDER ---
@@ -1293,8 +1359,16 @@ const MarbleJar = ({ audioCtx, names, onClose, marbles, setMarbles, target, setT
                         <div style={{width: '100%', maxWidth: 800, display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: 80, flexShrink: 0, zIndex: 120}}>
                             <div style={{width: 100}}></div>
                             <div style={{display:'flex', flexDirection:'column', alignItems:'center'}}>
-                                <div style={{background: marbles >= target ? '#22c55e' : 'rgba(255,255,255,0.1)', padding: '5px 30px', borderRadius: 20, border: '2px solid rgba(255,255,255,0.2)', fontSize: marbles >= target ? '3rem' : '2.5rem', fontWeight: 900, color: '#fff', textAlign: 'center', textShadow: '0 2px 10px rgba(0,0,0,0.3)'}}>
-                                    {marbles >= target ? (reward ? `🎉 ${reward}!` : "GOAL REACHED!") : `${marbles} / ${target}`}
+                                <div style={{
+                                    background: showWinBanner ? '#22c55e' : 'rgba(255,255,255,0.1)', 
+                                    padding: '5px 30px', borderRadius: 20, 
+                                    border: '2px solid rgba(255,255,255,0.2)', 
+                                    fontSize: showWinBanner ? '3rem' : '2.5rem', 
+                                    fontWeight: 900, color: '#fff', textAlign: 'center',
+                                    transition: 'all 0.3s ease',
+                                    textShadow: '0 2px 10px rgba(0,0,0,0.3)'
+                                }}>
+                                    {showWinBanner ? (reward ? `🎉 ${reward}!` : "GOAL REACHED!") : `${marbles} / ${target}`}
                                 </div>
                                 {raffleWinner && (<div style={{marginTop: 10, background: '#fcd34d', color: '#78350f', padding: '5px 15px', borderRadius: 10, fontWeight: 800, animation: 'modalPop 0.5s'}}>WINNER: {raffleWinner}</div>)}
                             </div>
@@ -1304,18 +1378,36 @@ const MarbleJar = ({ audioCtx, names, onClose, marbles, setMarbles, target, setT
                             </div>
                         </div>
 
-                        {/* JAR AREA - FLEX 1 pushes text down */}
                         <div style={{flex: 1, display:'flex', alignItems:'center', justifyContent:'center', width:'100%', position:'relative', minHeight: 0}}>
                             <div ref={jarWrapperRef} style={{position: 'relative', width: '100%', maxWidth: 600, height: '100%'}}>
+                                {showSlotEditor && (
+                                    <div style={{position:'absolute', inset:0, background:'rgba(0,0,0,0.8)', zIndex:20, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:20, backdropFilter:'blur(5px)'}}>
+                                        <h3 style={{color:'white', marginBottom:10}}>Edit Slots</h3>
+                                        <textarea value={customSlotInput} onChange={(e)=>setCustomSlotInput(e.target.value)} style={{width:'100%', height:100, marginBottom:10, background:'rgba(255,255,255,0.1)', color:'white', border:'1px solid rgba(255,255,255,0.2)', borderRadius:8, padding:10}} placeholder="Enter labels separated by commas..."/>
+                                        <button onClick={()=>setShowSlotEditor(false)} className="btn" style={{background:'#3b82f6', color:'white'}}>Done</button>
+                                    </div>
+                                )}
                                 <div style={{position: 'absolute', top: -20, left: -5, right: -5, height: 30, borderRadius: '15px', border: '5px solid rgba(255,255,255,0.4)', background: 'linear-gradient(to right, rgba(255,255,255,0.2), rgba(255,255,255,0.05))', zIndex: 10}}></div>
                                 <div ref={sceneRef} style={{position: 'absolute', inset: 0, borderLeft: '5px solid rgba(255,255,255,0.3)', borderRight: '5px solid rgba(255,255,255,0.3)', borderBottom: '8px solid rgba(255,255,255,0.4)', borderRadius: '0 0 50px 50px', background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01))', boxShadow: 'inset 0 0 40px rgba(255,255,255,0.1), 0 20px 50px rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)'}} />
                                 <div style={{position: 'absolute', top: 20, left: 20, width: '25%', bottom: 30, background: 'linear-gradient(to right, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%)', borderRadius: '0 0 20px 30px', pointerEvents: 'none'}}></div>
                             </div>
                         </div>
 
-                        {/* CONTROLS */}
                         <div style={{display:'flex', gap:20, marginTop:10, width: '100%', maxWidth: 800, justifyContent:'center', alignItems:'center', zIndex: 120, flexShrink: 0, paddingBottom: 20}}>
                             <div style={{display:'flex', flexDirection:'column', gap:5}}>
+                                <div style={{display:'flex', gap:5}}>
+                                    <button onClick={()=>setShowSlots(!showSlots)} className="btn" style={{fontSize:'0.8rem', padding:'2px 8px', background: showSlots ? '#10b981' : 'rgba(255,255,255,0.1)'}}>{showSlots ? 'Slots ON' : 'Slots OFF'}</button>
+                                    {showSlots && (
+                                        <select value={slotType} onChange={(e)=>setSlotType(e.target.value)} className="btn" style={{fontSize:'0.8rem', padding:'2px', width:80}}>
+                                            <option value="numbers">1-5</option>
+                                            <option value="prizes">Prizes</option>
+                                            <option value="teams">Teams</option>
+                                            <option value="multi">xMulti</option>
+                                            <option value="custom">Custom</option>
+                                        </select>
+                                    )}
+                                    {showSlots && slotType === 'custom' && <button onClick={()=>setShowSlotEditor(true)} className="btn" style={{padding:'2px 5px'}}>Edit</button>}
+                                </div>
                                 <select value={ballSize} onChange={(e)=>setBallSize(e.target.value)} className="btn" style={{background:'rgba(255,255,255,0.1)', fontSize:'0.8rem'}}>
                                     <option value="small" style={{color:'black'}}>Sm Ball</option>
                                     <option value="medium" style={{color:'black'}}>Med Ball</option>
@@ -1366,9 +1458,15 @@ const MarbleJar = ({ audioCtx, names, onClose, marbles, setMarbles, target, setT
 
                         {raffleWinner && (<div style={{marginBottom: 10, background: '#fcd34d', color: '#78350f', padding: '5px', borderRadius: 6, fontWeight: 800, textAlign:'center', animation: 'modalPop 0.5s'}}>WINNER: {raffleWinner}</div>)}
 
-                        {/* JAR WRAPPER */}
                         <div style={{flex: 1, display:'flex', justifyContent:'center', padding: '10px 0', overflow:'hidden', position:'relative', minHeight:0}}>
                             <div ref={jarWrapperRef} style={{position:'relative', width:'100%', height:'100%', minHeight: 300}}>
+                                {showSlotEditor && (
+                                    <div style={{position:'absolute', inset:0, background:'rgba(0,0,0,0.8)', zIndex:20, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:20, backdropFilter:'blur(5px)', borderRadius: 20}}>
+                                        <h3 style={{color:'white', marginBottom:10}}>Edit Slots</h3>
+                                        <textarea value={customSlotInput} onChange={(e)=>setCustomSlotInput(e.target.value)} style={{width:'100%', height:80, marginBottom:10, background:'rgba(255,255,255,0.1)', color:'white', border:'1px solid rgba(255,255,255,0.2)', borderRadius:8, padding:10}} placeholder="Enter labels separated by commas..."/>
+                                        <button onClick={()=>setShowSlotEditor(false)} className="btn" style={{background:'#3b82f6', color:'white'}}>Done</button>
+                                    </div>
+                                )}
                                 <div style={{position: 'absolute', top: -12, left: -2, right: -2, height: 24, borderRadius: '12px', border: '4px solid rgba(255,255,255,0.4)', background: 'linear-gradient(to right, rgba(255,255,255,0.2), rgba(255,255,255,0.05))', zIndex: 10}}></div>
                                 <div ref={sceneRef} style={{position: 'absolute', inset: 0, borderLeft: '4px solid rgba(255,255,255,0.3)', borderRight: '4px solid rgba(255,255,255,0.3)', borderBottom: '8px solid rgba(255,255,255,0.4)', borderRadius: '0 0 40px 40px', background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01))', boxShadow: 'inset 0 0 30px rgba(255,255,255,0.1), 0 20px 50px rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)'}} />
                                 <div style={{position: 'absolute', top: 15, left: 15, width: '20%', bottom: 25, background: 'linear-gradient(to right, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.02) 100%)', borderRadius: '0 0 20px 30px', pointerEvents: 'none'}}></div>
@@ -1388,11 +1486,18 @@ const MarbleJar = ({ audioCtx, names, onClose, marbles, setMarbles, target, setT
                                     <input type="text" value={reward || ""} onChange={(e)=>setReward(e.target.value)} placeholder="Reward..." style={{width: 70, background:'rgba(255,255,255,0.1)', border:'none', borderRadius:4, color:'white', padding:'2px 6px', fontSize:'0.8rem', marginLeft: 6}} />
                                 </div>
                                 <div style={{display:'flex', flexDirection:'column', gap:2}}>
-                                    <select value={jarSize} onChange={(e)=>setJarSize(e.target.value)} style={{background:'rgba(255,255,255,0.1)', border:'none', color:'white', fontSize:'0.7rem', padding:2, borderRadius:4, cursor:'pointer'}}>
-                                        <option value="small" style={{color:'black'}}>Sm Jar</option>
-                                        <option value="medium" style={{color:'black'}}>Med Jar</option>
-                                        <option value="large" style={{color:'black'}}>Lg Jar</option>
-                                    </select>
+                                    <div style={{display:'flex', gap:2}}>
+                                        <button onClick={()=>setShowSlots(!showSlots)} className="btn" style={{fontSize:'0.7rem', padding:'2px', background: showSlots ? '#10b981' : 'rgba(255,255,255,0.1)'}}>{showSlots ? 'Slots' : 'No Slots'}</button>
+                                        {showSlots && (
+                                            <select value={slotType} onChange={(e)=>setSlotType(e.target.value)} className="btn" style={{fontSize:'0.7rem', padding:'0px', width:50}}>
+                                                <option value="numbers">1-5</option>
+                                                <option value="prizes">Prize</option>
+                                                <option value="teams">Team</option>
+                                                <option value="custom">Edit</option>
+                                            </select>
+                                        )}
+                                        {showSlots && slotType === 'custom' && <button onClick={()=>setShowSlotEditor(true)} className="btn" style={{padding:'2px 5px', fontSize:'0.7rem'}}>Edit</button>}
+                                    </div>
                                     <button onClick={() => setIsPlinko(!isPlinko)} className="btn" style={{fontSize:'0.7rem', padding:'2px', background: isPlinko ? '#10b981' : 'rgba(255,255,255,0.1)'}}>
                                         {isPlinko ? 'Pegs ON' : 'Pegs OFF'}
                                     </button>
