@@ -81,7 +81,6 @@
         // --- 2. THEMES & UTILS ---
         const THEMES = {
           default: { 
-              name: "Swiss Army", 
               colors: ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'], 
               bg: "#1e293b", 
               sidebar: "rgba(30, 41, 59, 0.7)", 
@@ -327,40 +326,49 @@
         const defaultConcepts = ["Remember", "Understand", "Apply", "Analyze", "Evaluate", "Create"];
 
         // --- 3. SUB-COMPONENTS ---
-        const DraggableBox = ({ children, x=0, y=0, style={}, className="" }) => {
-            const [pos, setPos] = useState({x, y});
-            const [dragging, setDragging] = useState(false);
-            const offset = useRef({x:0, y:0});
+const DraggableBox = ({ children, x=20, y=70, style={}, className="" }) => {
+    const [pos, setPos] = useState({x, y});
+    const [dragging, setDragging] = useState(false);
+    const offset = useRef({x:0, y:0});
 
-            useEffect(() => {
-                const move = (e) => {
-                    if(dragging) setPos({ x: e.clientX - offset.current.x, y: e.clientY - offset.current.y });
+    useEffect(() => {
+const move = (e) => {
+                    if(!dragging) return;
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    
+                    // Keeps widgets 100px away from the edges so they stay grabable
+                    const newX = Math.max(10, Math.min(clientX - offset.current.x, window.innerWidth - 110));
+                    const newY = Math.max(10, Math.min(clientY - offset.current.y, window.innerHeight - 110));
+                    
+                    setPos({ x: newX, y: newY });
                 };
-                const up = () => setDragging(false);
-                if(dragging) {
-                    window.addEventListener('mousemove', move);
-                    window.addEventListener('mouseup', up);
-                }
-                return () => {
-                    window.removeEventListener('mousemove', move);
-                    window.removeEventListener('mouseup', up);
-                };
-            }, [dragging]);
-
-            const start = (e) => {
-                if(e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || e.target.tagName === 'OPTION' || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-                const rect = e.currentTarget.getBoundingClientRect();
-                if(e.clientX > rect.right - 20 && e.clientY > rect.bottom - 20) return; 
-                setDragging(true);
-                offset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
-            };
-
-            return (
-                <div onMouseDown={start} style={{...style, position:'absolute', left:pos.x, top:pos.y, cursor: dragging ? 'grabbing' : 'grab', userSelect:'none'}} className={className}>
-                    {children}
-                </div>
-            );
+        const up = () => setDragging(false);
+        if(dragging) {
+            window.addEventListener('pointermove', move);
+            window.addEventListener('pointerup', up);
+        }
+        return () => {
+            window.removeEventListener('pointermove', move);
+            window.removeEventListener('pointerup', up);
         };
+    }, [dragging]);
+
+    const start = (e) => {
+        // Don't drag if clicking interactive elements inside the widget
+        if(['BUTTON', 'SELECT', 'OPTION', 'INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        setDragging(true);
+        offset.current = { x: clientX - pos.x, y: clientY - pos.y };
+    };
+
+    return (
+        <div onPointerDown={start} style={{...style, position:'absolute', left:pos.x, top:pos.y, cursor: dragging ? 'grabbing' : 'grab', userSelect:'none', touchAction:'none'}} className={className}>
+            {children}
+        </div>
+    );
+};
 
         const Timer = ({ audioCtx, onClose }) => {
           const [mode, setMode] = useState('stopwatch');
@@ -609,33 +617,77 @@
             );
         };
 
-        const HelpModal = ({ onClose }) => (
-            <div className="modal-overlay">
-              <div className="modal" style={{maxWidth:600, textAlign:'left'}}>
-                 <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20}}>
-                     <h2 style={{margin:0, fontSize:'1.5rem'}}>Swiss Army Guide</h2>
-                     <button onClick={onClose} className="btn" style={{padding:4}}><Icons.X/></button>
-                 </div>
-                 <div style={{display:'flex', flexDirection:'column', gap:16, maxHeight:'60vh', overflowY:'auto', paddingRight:12}}>
-                    <div style={{background:'rgba(128,128,128,0.05)', padding:10, borderRadius:8}}>
-                        <div style={{fontWeight:800, color:'#fbbf24', marginBottom:4, textTransform:'uppercase', fontSize:'0.8rem'}}>The Basics</div>
-                        <div style={{marginBottom:4}}><span style={{fontWeight:700}}>Spinning:</span> Press <span style={{background:'rgba(255,255,255,0.1)', padding:'2px 6px', borderRadius:4, fontFamily:'monospace'}}>Spacebar</span> or click "SPIN".</div>
-                        <div><span style={{fontWeight:700}}>Hide Names:</span> Click any name chip in the list to temporarily skip them.</div>
-                    </div>
-                    <div style={{background:'rgba(128,128,128,0.05)', padding:10, borderRadius:8}}>
-                        <div style={{fontWeight:800, color:'#3b82f6', marginBottom:4, textTransform:'uppercase', fontSize:'0.8rem'}}>Class Management</div>
-                        <div style={{marginBottom:8}}><div style={{fontWeight:700, display:'flex', alignItems:'center', gap:6}}><Icons.Save/> Saving a Class</div>
-                        <div style={{fontSize:'0.9rem', opacity:0.8, marginLeft:24}}>Type a name in the top box and click Save.</div></div>
-                        <div><div style={{fontWeight:700, display:'flex', alignItems:'center', gap:6}}><Icons.Clipboard/> Importing Rosters</div>
-                        <div style={{fontSize:'0.9rem', opacity:0.8, marginLeft:24}}>Click <b>Import</b> in the Tools menu to paste a list or upload a CSV/TXT.</div></div>
-                    </div>
-                 </div>
-                 <div style={{marginTop:20, textAlign:'center'}}>
-                     <button onClick={onClose} className="btn btn-primary" style={{width:'100%', fontSize:'1rem', padding:12}}>Let's Play!</button>
-                 </div>
-              </div>
-            </div>
-        );
+const HelpModal = ({ onClose }) => {
+            const [activeTab, setActiveTab] = useState('start');
+            const tabs = [
+                { id: 'start', label: '🚀 Start', color: '#3b82f6' },
+                { id: 'spin', label: '🎡 Spin', color: '#8b5cf6' },
+                { id: 'manage', label: '🏫 Manage', color: '#10b981' },
+                { id: 'tools', label: '⚡ Tools', color: '#f59e0b' }
+            ];
+
+            return (
+                <div className="modal-overlay">
+                  <div className="modal" style={{maxWidth:750, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '85vh', background: '#0f172a', textAlign: 'left'}}>
+                     <div style={{padding: '20px 30px', background: 'rgba(255,255,255,0.03)', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                        <h2 style={{margin:0, fontSize:'1.4rem', fontWeight:900}}>Teacher Quick-Start Guide</h2>
+                        <button onClick={onClose} className="btn" style={{padding:6, border:'none', background:'rgba(239,68,68,0.1)', color:'#ef4444'}}><Icons.X/></button>
+                     </div>
+                     <div style={{display:'flex', gap: 8, padding: '12px 20px', background: 'rgba(0,0,0,0.2)'}}>
+                        {tabs.map(t => (
+                            <div key={t.id} onClick={()=>setActiveTab(t.id)} style={{
+                                flex: 1, textAlign: 'center', padding: '10px', borderRadius: '10px', cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem',
+                                background: activeTab === t.id ? `${t.color}33` : 'transparent',
+                                color: activeTab === t.id ? t.color : 'rgba(255,255,255,0.4)',
+                                border: activeTab === t.id ? `1px solid ${t.color}` : '1px solid transparent'
+                            }}>{t.label}</div>
+                        ))}
+                     </div>
+                     <div style={{flex: 1, overflowY:'auto', padding: '30px'}}>
+                        {activeTab === 'start' && (
+                            <div style={{animation: 'fadeIn 0.3s'}}>
+                                <h3 style={{color: '#3b82f6', marginTop: 0}}>🚀 Get Running in 3 Steps</h3>
+                                <p><b>1. Add Names:</b> Paste your student list into the text area. Tap a name chip to temporarily hide a student.</p>
+                                <p><b>2. Save Session:</b> Click the <b>Save</b> icon. This remembers names, participation counts, and marble progress.</p>
+                                <p><b>3. Present:</b> Close the settings or use <b>Projector Mode</b> to maximize the wheel for your students.</p>
+                            </div>
+                        )}
+                        {activeTab === 'spin' && (
+                            <div style={{animation: 'fadeIn 0.3s'}}>
+                                <h3 style={{color: '#8b5cf6', marginTop: 0}}>🎡 Spin Mode Breakdown</h3>
+                                <p>• <b>Concept Mode:</b> Spins a Name + a Task (like Bloom's Taxonomy) at once.</p>
+                                <p>• <b>Fair Mode:</b> Winners are removed so everyone gets a turn.</p>
+                                <p>• <b>Mystery Mode:</b> Hides labels while spinning for maximum suspense.</p>
+                                <p>• <b>Battle Mode:</b> Selects two random "Contestants" for head-to-head challenges.</p>
+                            </div>
+                        )}
+                        {activeTab === 'manage' && (
+                            <div style={{animation: 'fadeIn 0.3s'}}>
+                                <h3 style={{color: '#10b981', marginTop: 0}}>🏫 Classroom Management</h3>
+                                <p>• <b>Marble Jar:</b> Set behavior goals. Click <b>+Drop</b> to celebrate class wins with physics-based marbles!</p>
+                                <p>• <b>Seating Chart:</b> Drag seats into your floor plan. Use <b>Architect</b> to build and <b>Students</b> to assign names.</p>
+                                <p>• <b>Heatmap:</b> Click the <b>Bar Chart</b> icon to see participation and export data for your gradebook.</p>
+                            </div>
+                        )}
+                        {activeTab === 'tools' && (
+                            <div style={{animation: 'fadeIn 0.3s'}}>
+                                <h3 style={{color: '#f59e0b', marginTop: 0}}>⚡ Essential Teacher Tools</h3>
+                                <p>• <b>Noise Meter:</b> Real-time visual feedback on classroom volume.</p>
+                                <p>• <b>Billboard:</b> Project giant text or a QR code link for students to scan.</p>
+                                <p>• <b>Strategy Spin:</b> Randomly select one of 25+ Kagan engagement strategies.</p>
+                                <div style={{marginTop: 20, padding: 15, background: 'rgba(255, 255, 255, 0.05)', borderRadius: 12, fontSize: '0.85rem'}}>
+                                    📱 <b>Mobile Tips:</b> Grab window title bars to drag tools. The wheel auto-shrinks to make space for the Timer!
+                                </div>
+                            </div>
+                        )}
+                     </div>
+                     <div style={{padding: '20px 30px', background: 'rgba(0,0,0,0.2)', textAlign: 'center'}}>
+                        <button onClick={onClose} className="btn btn-primary" style={{width:'100%', fontSize:'1.1rem', padding:16, borderRadius: '16px'}}>I'm Ready to Teach!</button>
+                     </div>
+                  </div>
+                </div>
+            );
+        };
 
         const ImportModal = ({ onClose, onImport }) => {
             const [text, setText] = useState("");
@@ -1031,21 +1083,13 @@ const MarbleJar = ({ audioCtx, names, onClose, marbles, setMarbles, target, setT
                 }
             };
 
-            const initPhysics = () => {
-                // Ensure Matter exists
+const initPhysics = () => {
                 if (typeof Matter === 'undefined') return;
 
-                // 1. MEASURE CONTAINER
-                let width = 0;
-                let height = 0;
+                // 1. MEASURE CONTAINER correctly
+                let width = jarWrapperRef.current ? jarWrapperRef.current.clientWidth : 0;
+                let height = jarWrapperRef.current ? jarWrapperRef.current.clientHeight : 0;
 
-                if (jarWrapperRef.current) {
-                    const rect = jarWrapperRef.current.getBoundingClientRect();
-                    width = rect.width;
-                    height = rect.height;
-                }
-
-                // If container not ready, retry briefly then give up
                 if (width < 50 || height < 50) {
                     setTimeout(initPhysics, 50);
                     return;
@@ -1072,12 +1116,12 @@ const MarbleJar = ({ audioCtx, names, onClose, marbles, setMarbles, target, setT
 
                 // 2. BUILD WALLS
                 const wallOpts = { isStatic: true, render: { visible: false } };
-                // Floor is thick to catch fast falling objects
-                const ground = Bodies.rectangle(width / 2, height + 250, width, 500, wallOpts);
+                
+                // GROUND: Places the floor exactly at the bottom of the widget
+                const ground = Bodies.rectangle(width / 2, height - 10, width, 20, wallOpts);
                 const leftWall = Bodies.rectangle(-25, height / 2, 50, height * 4, wallOpts);
                 const rightWall = Bodies.rectangle(width + 25, height / 2, 50, height * 4, wallOpts);
                 
-                // Funnel (Disabled if Plinko is ON)
                 const funnelAngle = isPlinko ? 0 : Math.PI / 3;
                 const slopeOffset = isPlinko ? -200 : -20;
                 const leftSlope = Bodies.rectangle(slopeOffset, -50, 200, 20, { isStatic: true, angle: funnelAngle, render: { visible: false } });
@@ -1515,6 +1559,17 @@ const MarbleJar = ({ audioCtx, names, onClose, marbles, setMarbles, target, setT
 
         // --- 4. MAIN APP ---
         function App() {
+        const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.warn(`Error attempting to enable full-screen mode: ${err.message}`);
+        });
+        setProjectorMode(true);
+    } else {
+        document.exitFullscreen();
+        setProjectorMode(false);
+    }
+};
           const [names, setNames] = useState(defaultNames);
           const [inputText, setInputText] = useState(defaultNames.join('\n'));
           const [savedLists, setSavedLists] = useState({}); const [newListName, setNewListName] = useState("");
@@ -2014,24 +2069,56 @@ marbleReward: marbleReward
                              theme.anim === 'float' ? 'float 20s ease-in-out infinite' : 'none'};
             }
 
-            .sidebar { 
+/* --- UPDATED SIDE-BY-SIDE LOGIC --- */
+.sidebar { 
                 width: 340px; 
+                flex-shrink: 0;
                 background: var(--sidebar-bg);
                 backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
                 border-right: 1px solid rgba(255,255,255,0.1); 
-                box-shadow: 20px 0 50px rgba(0,0,0,0.1);
                 display: flex; flex-direction: column; 
-                z-index: 20; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                z-index: 45; 
+                /* Transition margin instead of transform for the push effect */
+                transition: margin-left 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease;
             }
-            .sidebar.projector-hidden { width: 0; opacity: 0; padding: 0; overflow: hidden; border: none; }
-            .sidebar.closed { transform: translateX(-100%); position: fixed; height: 100%; top: 0; left: 0; }
-            .sidebar.open { transform: translateX(0); position: fixed; height: 100%; top: 0; left: 0; }
 
-            .main { 
-                flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between; 
-                position: relative; padding: 16px; overflow: hidden;
-                padding-top: max(16px, env(safe-area-inset-top)); padding-bottom: max(16px, env(safe-area-inset-bottom));
-                padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right));
+            .sidebar.closed { 
+                margin-left: -340px; 
+                opacity: 0; 
+                pointer-events: none; /* Prevents invisible clicks */
+            }
+
+            .sidebar.open { 
+                margin-left: 0; 
+                opacity: 1; 
+            }
+
+.main { 
+                flex: 1; 
+                display: flex; 
+                flex-direction: column; 
+                align-items: center; 
+                justify-content: center; 
+                position: relative; 
+                padding: 10px; 
+                overflow: hidden; 
+                height: 100vh;
+                min-width: 0; /* This is the secret for side-by-side resizing */
+            }
+
+            /* Adjust for smaller tablets/phones */
+            @media (max-width: 1024px) {
+                .sidebar { width: 300px; }
+                .sidebar.closed { margin-left: -300px; }
+                .modal { width: 95%; padding: 20px; }
+                .modal { 
+        width: 95%; 
+        height: 90vh; /* Takes up most of the height on phones */
+        padding: 0; 
+        border-radius: 20px; 
+    }
+    /* Makes buttons easier to tap on iPad/iPhone */
+    .btn { padding: 12px; }
             }
 
             .btn { 
@@ -2117,10 +2204,18 @@ marbleReward: marbleReward
             .mobile-toggle { position: absolute; top: 20px; left: 20px; z-index: 30; }
             .wheel-container { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 0; flex-shrink: 1; }
 
-            @media (min-width: 769px) { 
-                .sidebar { transform: translateX(0) !important; position: relative !important; height: 100% !important; } 
-                .mobile-toggle { display: none; } 
-            }
+@media (max-width: 1024px) {
+    .sidebar { 
+        width: 280px; 
+        position: fixed; 
+        height: 100%; 
+        top: 0; 
+        left: 0; 
+    }
+    .sidebar.closed { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .modal { width: 95%; padding: 20px; border-radius: 20px; }
+}
           `;
 
           return (
@@ -2129,14 +2224,29 @@ marbleReward: marbleReward
                 <canvas ref={confettiCanvasRef} style={{position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 50}} />
                 <button onClick={() => setShowSettings(true)} className="mobile-toggle btn"><Icons.Settings /></button>
 
-                <div className={`sidebar ${showSettings ? 'open' : 'closed'} ${projectorMode ? 'projector-hidden' : ''}`}>
-                    <div style={{padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(128,128,128,0.1)'}}>
-                         <h1 style={{margin:0, fontSize: '1.25rem', fontWeight:800, background: `linear-gradient(to right, ${theme.accent}, ${theme.colors[0]})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}>Swiss Army Spinner</h1>
-                         <div style={{display:'flex', gap: 4}}>
-                            <button className="btn" onClick={() => setShowHelp(true)} title="Help" style={{padding: 8}}><Icons.HelpCircle /></button>
-                            <button className="btn" onClick={() => setProjectorMode(true)} title="Projector Mode" style={{padding: 8}}><Icons.Maximize /></button>
-                         </div>
-                    </div>
+<div className={`sidebar ${showSettings ? 'open' : 'closed'} ${projectorMode ? 'projector-hidden' : ''}`}>
+<div style={{padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.05)'}}>
+         <div style={{display:'flex', justifyContent: 'space-between', alignItems:'center'}}>
+            <div style={{display: 'flex', flexDirection: 'column'}}>
+                <h1 style={{margin:0, fontSize: '1.2rem', fontWeight:900, background: `linear-gradient(to right, ${theme.accent}, ${theme.colors[2]})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}>
+                    Swiss Army Spinner
+                </h1>
+                <span style={{fontSize: '0.65rem', opacity: 0.5, textTransform: 'uppercase', letterSpacing: 1}}>Teacher Toolkit</span>
+            </div>
+            <button className="btn" onClick={() => setShowSettings(false)} style={{padding: 6, border:'none', background:'rgba(239,68,68,0.1)', color:'#ef4444'}} title="Hide Settings"><Icons.X /></button>
+         </div>
+         {/* Mute and Celebrate Row */}
+         <div style={{display:'flex', gap: 6}}>
+            <button className="btn" onClick={() => setSoundEnabled(!soundEnabled)} style={{flex: 1, justifyContent: 'center', background: soundEnabled ? 'rgba(255,255,255,0.05)' : 'rgba(239,68,68,0.2)', color: soundEnabled ? 'inherit' : '#ef4444'}}>
+                {soundEnabled ? <Icons.Volume2 /> : <Icons.VolumeX />} {soundEnabled ? "Audio On" : "Muted"}
+            </button>
+            <button className="btn" onClick={() => FireConfetti(confettiCanvasRef.current)} style={{flex: 1, justifyContent: 'center', background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6'}}>🎉 Celebrate</button>
+         </div>
+         <div style={{display:'flex', gap: 6}}>
+            <button className="btn" onClick={() => setShowHelp(true)} style={{flex: 1, justifyContent: 'center', fontSize: '0.8rem'}}><Icons.HelpCircle /> Guide</button>
+            <button className="btn" onClick={toggleFullScreen} style={{flex: 1, justifyContent: 'center', fontSize: '0.8rem'}}><Icons.Maximize /> Projector</button>
+         </div>
+    </div>
                     
                     <div className="input-area">
                         {/* THEME PICKER */}
@@ -2506,8 +2616,7 @@ marbleReward: marbleReward
                         )
                     )}
 
-                    {projectorMode && <button onClick={() => setProjectorMode(false)} className="projector-btn btn" title="Exit Projector Mode"><Icons.Minimize /></button>}
-                    <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" style={{ display: 'none' }} />
+{projectorMode && <button onClick={toggleFullScreen} className="projector-btn btn" title="Exit Projector Mode"><Icons.Minimize /></button>}                    <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" style={{ display: 'none' }} />
                     {showTimer && <Timer audioCtx={audioCtxRef} onClose={() => setShowTimer(false)} />}
                     {activeTeams.length > 0 && <Scoreboard teams={activeTeams} scores={teamScores} onUpdateScore={handleUpdateScore} onClose={() => setActiveTeams([])} />}
 
@@ -2526,10 +2635,25 @@ marbleReward: marbleReward
                         </>
                     )}
 
-                    <div ref={containerRef} className="wheel-container">
-                        <canvas ref={canvasRef} onClick={spin} style={{maxWidth: '100%', maxHeight: projectorMode ? '90vh' : (showTimer ? '55vh' : '70vh'), cursor: 'pointer', filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.3))', transition: 'max-height 0.3s ease'}}/>
-                        {bloomMode === 'dual' && (<canvas ref={canvasRef2} onClick={spin} style={{maxWidth: '100%', maxHeight: projectorMode ? '90vh' : (showTimer ? '55vh' : '70vh'), cursor: 'pointer', filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.3))', transition: 'max-height 0.3s ease'}}/>)}
-                    </div>
+<div ref={containerRef} className="wheel-container" style={{
+    width: '100%', 
+    flex: 1, 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    padding: projectorMode ? '0' : '20px', /* Remove padding in projector mode for max size */
+    minHeight: 0
+}}>
+    <canvas ref={canvasRef} onClick={spin} style={{
+        maxWidth: '100%', 
+        /* Grow to 90% of screen height in projector mode, otherwise leave room for buttons */
+        maxHeight: projectorMode ? '90vh' : ((showTimer || showNoiseMeter) ? '40vh' : '75vh'), 
+        objectFit: 'contain', 
+        cursor: 'pointer', 
+        filter: 'drop-shadow(0 10px 30px rgba(0,0,0,0.4))',
+        transition: 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)'
+    }}/>
+</div>
                     
                     <button onClick={spin} disabled={isSpinning || (bloomMode !== 'solo' && activeNames.length < 2)} className="btn btn-primary">
                         {isSpinning ? (battleMode ? (battleStage === 'waiting' ? 'NEXT...' : 'SPINNING...') : 'SPINNING...') : (battleMode ? 'BATTLE SPIN!' : 'SPIN!')}
