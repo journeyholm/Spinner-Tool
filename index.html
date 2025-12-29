@@ -630,9 +630,10 @@ const HelpModal = ({ onClose }) => {
                 <div className="modal-overlay">
                   <div className="modal" style={{maxWidth:750, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '85vh', background: '#0f172a', textAlign: 'left'}}>
                      <div style={{padding: '20px 30px', background: 'rgba(255,255,255,0.03)', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                        <h2 style={{margin:0, fontSize:'1.4rem', fontWeight:900}}>Teacher Quick-Start Guide</h2>
+                        <h2 style={{margin:0, fontSize:'1.4rem', fontWeight:900}}>Swiss Army Spinner Guide</h2>
                         <button onClick={onClose} className="btn" style={{padding:6, border:'none', background:'rgba(239,68,68,0.1)', color:'#ef4444'}}><Icons.X/></button>
                      </div>
+                     
                      <div style={{display:'flex', gap: 8, padding: '12px 20px', background: 'rgba(0,0,0,0.2)'}}>
                         {tabs.map(t => (
                             <div key={t.id} onClick={()=>setActiveTab(t.id)} style={{
@@ -643,46 +644,47 @@ const HelpModal = ({ onClose }) => {
                             }}>{t.label}</div>
                         ))}
                      </div>
-                     <div style={{flex: 1, overflowY:'auto', padding: '30px'}}>
+
+                     <div style={{flex: 1, overflowY:'auto', padding: '30px', lineHeight: '1.6'}}>
                         {activeTab === 'start' && (
                             <div style={{animation: 'fadeIn 0.3s'}}>
-                                <h3 style={{color: '#3b82f6', marginTop: 0}}>🚀 Get Running in 3 Steps</h3>
-                                <p><b>1. Add Names:</b> Paste your student list into the text area. Tap a name chip to temporarily hide a student.</p>
-                                <p><b>2. Save Session:</b> Click the <b>Save</b> icon. This remembers names, participation counts, and marble progress.</p>
-                                <p><b>3. Present:</b> Close the settings or use <b>Projector Mode</b> to maximize the wheel for your students.</p>
+                                <h3 style={{color: '#3b82f6', marginTop: 0}}>🚀 Quick Setup</h3>
+                                <p><b>1. Add Names:</b> Paste your student list into the text area. Use the <b>Save</b> icon to remember this class and your marble jar progress for later.</p>
+                                <p><b>2. Privacy & Suspense:</b> Use <b>Mystery Mode</b> to hide names while spinning, or tap a name "chip" to skip a student who is absent.</p>
+                                <p><b>3. Master Volume:</b> Use the <b>Mute</b> button at the top of the sidebar to quickly silence the app during tests or quiet time.</p>
                             </div>
                         )}
                         {activeTab === 'spin' && (
                             <div style={{animation: 'fadeIn 0.3s'}}>
-                                <h3 style={{color: '#8b5cf6', marginTop: 0}}>🎡 Spin Mode Breakdown</h3>
-                                <p>• <b>Concept Mode:</b> Spins a Name + a Task (like Bloom's Taxonomy) at once.</p>
-                                <p>• <b>Fair Mode:</b> Winners are removed so everyone gets a turn.</p>
-                                <p>• <b>Mystery Mode:</b> Hides labels while spinning for maximum suspense.</p>
-                                <p>• <b>Battle Mode:</b> Selects two random "Contestants" for head-to-head challenges.</p>
+                                <h3 style={{color: '#8b5cf6', marginTop: 0}}>🎡 Spin Modes</h3>
+                                <p>• <b>Concept Mode:</b> Spin a student name and a task (like Bloom's Taxonomy) at the same time.</p>
+                                <p>• <b>Fair Mode:</b> Automatically greys out students after they win so everyone gets a turn.</p>
+                                <p>• <b>Battle Mode:</b> Selects two random students for a head-to-head challenge.</p>
+                                <p>• <b>Rapid Fire:</b> Click "Pick 3" or "Pick 5" to select a group of students in one high-speed sequence.</p>
                             </div>
                         )}
                         {activeTab === 'manage' && (
                             <div style={{animation: 'fadeIn 0.3s'}}>
-                                <h3 style={{color: '#10b981', marginTop: 0}}>🏫 Classroom Management</h3>
-                                <p>• <b>Marble Jar:</b> Set behavior goals. Click <b>+Drop</b> to celebrate class wins with physics-based marbles!</p>
-                                <p>• <b>Seating Chart:</b> Drag seats into your floor plan. Use <b>Architect</b> to build and <b>Students</b> to assign names.</p>
-                                <p>• <b>Heatmap:</b> Click the <b>Bar Chart</b> icon to see participation and export data for your gradebook.</p>
+                                <h3 style={{color: '#10b981', marginTop: 0}}>🏫 Management Tools</h3>
+                                <p>• <b>Marble Jar:</b> Click <b>+Drop</b> to celebrate class wins. The marbles use real physics! Reach your goal to trigger a celebration.</p>
+                                <p>• <b>Seating Architect:</b> Drag seats to match your room layout. Switch to <b>Students</b> mode to assign names to chairs.</p>
+                                <p>• <b>Heatmap:</b> Click the <b>Bar Chart</b> to see participation counts. Use <b>Export CSV</b> to save the data to your computer for grading.</p>
                             </div>
                         )}
                         {activeTab === 'tools' && (
                             <div style={{animation: 'fadeIn 0.3s'}}>
-                                <h3 style={{color: '#f59e0b', marginTop: 0}}>⚡ Essential Teacher Tools</h3>
-                                <p>• <b>Noise Meter:</b> Real-time visual feedback on classroom volume.</p>
-                                <p>• <b>Billboard:</b> Project giant text or a QR code link for students to scan.</p>
-                                <p>• <b>Strategy Spin:</b> Randomly select one of 25+ Kagan engagement strategies.</p>
+                                <h3 style={{color: '#f59e0b', marginTop: 0}}>📊 Interactive Features</h3>
+                                <p>• <b>Editable Poll:</b> Click the <b>Question</b> or <b>Labels</b> directly on the Poll widget to type your own. Use the + and - buttons to track live votes.</p>
+                                <p>• <b>Billboard:</b> Project giant text or a scanable <b>QR Code</b> for links.</p>
+                                <p>• <b>Chance Tools:</b> Use the Dice or Coin Flip for quick decisions. Results will appear in a popup that you can close to return to the wheel.</p>
                                 <div style={{marginTop: 20, padding: 15, background: 'rgba(255, 255, 255, 0.05)', borderRadius: 12, fontSize: '0.85rem'}}>
-                                    📱 <b>Mobile Tips:</b> Grab window title bars to drag tools. The wheel auto-shrinks to make space for the Timer!
+                                    <b>💡 Pro Tip:</b> Press <b>Space</b> to spin and keys <b>1, 2, or 3</b> for instant sound effects (Correct, Wrong, and Drumroll)!
                                 </div>
                             </div>
                         )}
                      </div>
                      <div style={{padding: '20px 30px', background: 'rgba(0,0,0,0.2)', textAlign: 'center'}}>
-                        <button onClick={onClose} className="btn btn-primary" style={{width:'100%', fontSize:'1.1rem', padding:16, borderRadius: '16px'}}>I'm Ready to Teach!</button>
+                        <button onClick={onClose} className="btn btn-primary" style={{width:'100%', fontSize:'1.1rem', padding:16, borderRadius: '16px'}}>Ready to Teach!</button>
                      </div>
                   </div>
                 </div>
