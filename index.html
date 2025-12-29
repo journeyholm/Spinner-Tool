@@ -1708,8 +1708,20 @@ const initPhysics = () => {
               }, 100);
           };
 
-          const [showPoll, setShowPoll] = useState(false);
-          const [pollCounts, setPollCounts] = useState({ A: 0, B: 0, C: 0, D: 0 });
+const [showPoll, setShowPoll] = useState(false);
+          const [pollData, setPollData] = useState({
+              question: "CLASS VOTE",
+              options: { A: 0, B: 0, C: 0, D: 0 },
+              labels: { A: "Option A", B: "Option B", C: "Option C", D: "Option D" }
+          });
+
+          const updatePollLabel = (key, val) => {
+              setPollData(prev => ({ ...prev, labels: { ...prev.labels, [key]: val } }));
+          };
+
+          const updatePollCount = (key, delta) => {
+              setPollData(prev => ({ ...prev, options: { ...prev.options, [key]: Math.max(0, prev.options[key] + delta) } }));
+          };
           const [showLineup, setShowLineup] = useState(false);
           const [lineupList, setLineupList] = useState([]);
           const [isLineupAnimating, setIsLineupAnimating] = useState(false);
@@ -1757,17 +1769,17 @@ const runChance = (type) => {
                   const numbers = Array.from({length: 10}, (_, i) => (i + 1).toString());
                   setTempWheelItems(numbers); setTimeout(() => spin(), 100);
               } else if (type === 'coin') {
-                  const res = Math.random() < 0.5 ? "HEADS" : "TAILS";
-                  setChanceResult(res); 
+                  const res = Math.random() < 0.5 ? "🤴 HEADS" : "🦅 TAILS";
+                  setChanceResult(res.includes("🤴") ? "HEADS" : "TAILS"); 
                   setChanceAnim('coin');
-                  // Trigger the winner window after the animation finishes
+                  // Trigger the result popup after the 2.5s flip animation
                   setTimeout(() => { setWinner(res); setChanceAnim(null); }, 2500);
               } else if (type === 'dice') {
                   const res = Math.floor(Math.random() * 6) + 1;
                   setChanceResult(res); 
                   setChanceAnim('dice');
-                  // Trigger the winner window after the animation finishes
-                  setTimeout(() => { setWinner(res.toString()); setChanceAnim(null); }, 2000);
+                  // Trigger the result popup after the 2s roll animation
+                  setTimeout(() => { setWinner(`🎲 ROLLED A ${res}`); setChanceAnim(null); }, 2000);
               }
           };
 
@@ -2488,50 +2500,44 @@ marbleReward: marbleReward
                     )}
 
                     {/* QUICK POLL WIDGET */}
-                    {showPoll && (
+{showPoll && (
                         pollView === 'full' ? (
                             <div style={{position:'fixed', inset:0, zIndex:100, background:'rgba(15,23,42,0.98)', display:'flex', flexDirection:'column', padding:40}}>
                                 <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:40}}>
-                                    <h1 style={{fontSize:'3rem', fontWeight:800, color:'#94a3b8', margin:0}}>LIVE POLL</h1>
+                                    <input value={pollData.question} onChange={(e) => setPollData(prev => ({...prev, question: e.target.value}))} style={{fontSize:'3rem', fontWeight:800, color:'#3b82f6', background:'transparent', border:'none', outline:'none', width:'70%'}} />
                                     <div style={{display:'flex', gap:20}}><button onClick={()=>setPollView('window')} className="btn" style={{fontSize:'1.5rem', padding:'10px 20px', background:'rgba(255,255,255,0.1)'}}><Icons.Minimize/> Window</button><button onClick={()=>setShowPoll(false)} className="btn" style={{fontSize:'1.5rem', padding:'10px 20px', background:'rgba(239,68,68,0.2)', color:'#ef4444'}}><Icons.X/></button></div>
                                 </div>
                                 <div style={{display:'flex', gap:40, flex:1, alignItems:'flex-end', justifyContent:'center', paddingBottom:50}}>
                                     {['A','B','C','D'].map((opt, i) => {
-                                        const max = Math.max(...Object.values(pollCounts), 1);
-                                        const h = (pollCounts[opt] / max) * 100;
+                                        const max = Math.max(...Object.values(pollData.options), 1);
+                                        const h = (pollData.options[opt] / max) * 100;
                                         const color = i===0?'#ef4444':i===1?'#3b82f6':i===2?'#eab308':'#22c55e';
                                         return (
                                             <div key={opt} style={{flex:1, height:'100%', display:'flex', flexDirection:'column', justifyContent:'flex-end', alignItems:'center'}}>
-                                                <div style={{fontSize:'4rem', fontWeight:900, marginBottom:20, color:'white'}}>{pollCounts[opt]}</div>
-                                                <div style={{width:'100%', height:`${Math.max(h, 2)}%`, background:color, borderRadius:'20px 20px 0 0', transition:'height 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)', opacity:0.8}}></div>
-                                                <div style={{fontSize:'3rem', fontWeight:900, marginTop:20, color:color}}>{opt}</div>
-                                                <div style={{display:'flex', gap:10, marginTop:20}}><button onClick={() => updatePoll(opt, 1)} style={{width:60, height:60, fontSize:'2rem', borderRadius:10, border:'none', background:'rgba(255,255,255,0.1)', color:'white', cursor:'pointer'}}>+</button><button onClick={() => updatePoll(opt, -1)} style={{width:60, height:60, fontSize:'2rem', borderRadius:10, border:'none', background:'rgba(255,255,255,0.05)', color:'#94a3b8', cursor:'pointer'}}>-</button></div>
+                                                <div style={{fontSize:'4rem', fontWeight:900, marginBottom:20, color:'white'}}>{pollData.options[opt]}</div>
+                                                <div style={{width:'100%', height:`${Math.max(h, 2)}%`, background:color, borderRadius:'20px 20px 0 0', transition:'height 0.5s ease-out', opacity:0.8}}></div>
+                                                <input value={pollData.labels[opt]} onChange={(e) => updatePollLabel(opt, e.target.value)} style={{fontSize:'1.5rem', fontWeight:700, marginTop:20, color:color, background:'transparent', border:'none', textAlign:'center', width:'100%'}} />
+                                                <div style={{display:'flex', gap:10, marginTop:20}}><button onClick={() => updatePollCount(opt, 1)} className="btn" style={{width:60, height:60, fontSize:'2rem', justifyContent:'center'}}>+</button><button onClick={() => updatePollCount(opt, -1)} className="btn" style={{width:60, height:60, fontSize:'2rem', justifyContent:'center'}}>-</button></div>
                                             </div>
                                         );
                                     })}
                                 </div>
                             </div>
-                        ) : pollView === 'mini' ? (
-                            <DraggableBox x={150} y={250} style={{zIndex: 55}}>
-                                <div style={{background: '#334155', padding:'8px 16px', borderRadius:30, display:'flex', alignItems:'center', gap:15, border:'1px solid rgba(255,255,255,0.1)'}}>
-                                    <span style={{fontWeight:800, color:'white'}}>POLL</span>
-                                    <div style={{display:'flex', gap:8, fontSize:'0.9rem', fontWeight:700}}><span style={{color:'#ef4444'}}>A:{pollCounts.A}</span><span style={{color:'#3b82f6'}}>B:{pollCounts.B}</span><span style={{color:'#eab308'}}>C:{pollCounts.C}</span><span style={{color:'#22c55e'}}>D:{pollCounts.D}</span></div>
-                                    <button onClick={()=>setPollView('window')} style={{background:'none', border:'none', color:'white', cursor:'pointer'}}><Icons.Maximize/></button>
-                                </div>
-                            </DraggableBox>
                         ) : (
                             <DraggableBox x={150} y={250} style={{zIndex: 55}}>
-                                <div style={{background: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(10px)', padding: 16, borderRadius: 16, width: 280, boxShadow: '0 10px 30px rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)'}}>
+                                <div style={{background: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(10px)', padding: 16, borderRadius: 16, width: 300, boxShadow: '0 10px 30px rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)'}}>
                                     <div style={{display:'flex',justifyContent:'space-between', marginBottom:15, alignItems:'center'}}>
-                                        <span style={{fontWeight:800, color:'#94a3b8', textTransform:'uppercase', fontSize:'0.8rem'}}>Class Vote</span>
-                                        <div style={{display:'flex', gap:8}}><button onClick={() => setPollCounts({A:0,B:0,C:0,D:0})} style={{fontSize:'0.7rem', color:'#94a3b8', background:'none', border:'none', cursor:'pointer'}}>Reset</button><button onClick={() => setPollView('full')} style={{background:'none', border:'none', color:'white', cursor:'pointer'}}><Icons.Maximize/></button><button onClick={() => setPollView('mini')} style={{background:'none', border:'none', color:'white', cursor:'pointer'}}><Icons.Minimize/></button><button onClick={() => setShowPoll(false)} style={{background:'none', border:'none', color:'white', cursor:'pointer'}}><Icons.X/></button></div>
+                                        <input value={pollData.question} onChange={(e) => setPollData(prev => ({...prev, question: e.target.value}))} style={{fontWeight:800, color:'#94a3b8', textTransform:'uppercase', fontSize:'0.8rem', background:'transparent', border:'none', outline:'none', width:'120px'}} />
+                                        <div style={{display:'flex', gap:8}}><button onClick={() => setPollData(prev => ({...prev, options: {A:0,B:0,C:0,D:0}}))} style={{fontSize:'0.7rem', color:'#94a3b8', background:'none', border:'none', cursor:'pointer'}}>Reset</button><button onClick={() => setPollView('full')} style={{background:'none', border:'none', color:'white', cursor:'pointer'}}><Icons.Maximize/></button><button onClick={() => setShowPoll(false)} style={{background:'none', border:'none', color:'white', cursor:'pointer'}}><Icons.X/></button></div>
                                     </div>
-                                    <div style={{display:'flex', gap:12, justifyContent:'space-between'}}>
+                                    <div style={{display:'flex', flexDirection:'column', gap:10}}>
                                         {['A','B','C','D'].map((opt, i) => (
-                                            <div key={opt} style={{display:'flex', flexDirection:'column', alignItems:'center', gap:6, flex:1}}>
-                                                <div style={{fontWeight:800, color: i===0?'#ef4444':i===1?'#3b82f6':i===2?'#eab308':'#22c55e'}}>{opt}</div>
-                                                <div style={{fontSize:'1.5rem', fontWeight:800}}>{pollCounts[opt]}</div>
-                                                <div style={{display:'flex', flexDirection:'column', gap:4, width:'100%'}}><button onClick={() => updatePoll(opt, 1)} style={{background:'rgba(255,255,255,0.1)', border:'none', color:'white', borderRadius:4, cursor:'pointer', padding:4}}>+</button><button onClick={() => updatePoll(opt, -1)} style={{background:'rgba(255,255,255,0.05)', border:'none', color:'#94a3b8', borderRadius:4, cursor:'pointer', padding:4}}>-</button></div>
+                                            <div key={opt} style={{display:'flex', alignItems:'center', gap:10, background:'rgba(255,255,255,0.03)', padding:'8px', borderRadius:8}}>
+                                                <div style={{fontWeight:900, color: i===0?'#ef4444':i===1?'#3b82f6':i===2?'#eab308':'#22c55e', width:20}}>{opt}</div>
+                                                <input value={pollData.labels[opt]} onChange={(e) => updatePollLabel(opt, e.target.value)} style={{flex:1, fontSize:'0.85rem', background:'transparent', border:'none', color:'white', outline:'none'}} />
+                                                <div style={{fontWeight:800, minWidth:20, textAlign:'right'}}>{pollData.options[opt]}</div>
+                                                <button onClick={() => updatePollCount(opt, 1)} style={{background:'rgba(255,255,255,0.1)', border:'none', color:'white', borderRadius:4, width:24, height:24}}>+</button>
+                                                <button onClick={() => updatePollCount(opt, -1)} style={{background:'rgba(255,255,255,0.05)', border:'none', color:'#94a3b8', borderRadius:4, width:24, height:24}}>-</button>
                                             </div>
                                         ))}
                                     </div>
