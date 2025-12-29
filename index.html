@@ -1752,14 +1752,22 @@ const initPhysics = () => {
 
           useEffect(() => { localStorage.setItem('spinner_scratchpad', scratchpad); }, [scratchpad]);
 
-          const runChance = (type) => {
+const runChance = (type) => {
               if (type === 'num') {
                   const numbers = Array.from({length: 10}, (_, i) => (i + 1).toString());
                   setTempWheelItems(numbers); setTimeout(() => spin(), 100);
               } else if (type === 'coin') {
-                  setChanceResult(Math.random() < 0.5 ? "HEADS" : "TAILS"); setChanceAnim('coin');
+                  const res = Math.random() < 0.5 ? "HEADS" : "TAILS";
+                  setChanceResult(res); 
+                  setChanceAnim('coin');
+                  // Trigger the winner window after the animation finishes
+                  setTimeout(() => { setWinner(res); setChanceAnim(null); }, 2500);
               } else if (type === 'dice') {
-                  setChanceResult(Math.floor(Math.random() * 6) + 1); setChanceAnim('dice');
+                  const res = Math.floor(Math.random() * 6) + 1;
+                  setChanceResult(res); 
+                  setChanceAnim('dice');
+                  // Trigger the winner window after the animation finishes
+                  setTimeout(() => { setWinner(res.toString()); setChanceAnim(null); }, 2000);
               }
           };
 
@@ -2225,7 +2233,7 @@ marbleReward: marbleReward
                 <button onClick={() => setShowSettings(true)} className="mobile-toggle btn"><Icons.Settings /></button>
 
 <div className={`sidebar ${showSettings ? 'open' : 'closed'} ${projectorMode ? 'projector-hidden' : ''}`}>
-<div style={{padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.05)'}}>
+    <div style={{padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.05)'}}>
          <div style={{display:'flex', justifyContent: 'space-between', alignItems:'center'}}>
             <div style={{display: 'flex', flexDirection: 'column'}}>
                 <h1 style={{margin:0, fontSize: '1.2rem', fontWeight:900, background: `linear-gradient(to right, ${theme.accent}, ${theme.colors[2]})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}>
@@ -2235,7 +2243,7 @@ marbleReward: marbleReward
             </div>
             <button className="btn" onClick={() => setShowSettings(false)} style={{padding: 6, border:'none', background:'rgba(239,68,68,0.1)', color:'#ef4444'}} title="Hide Settings"><Icons.X /></button>
          </div>
-         {/* Mute and Celebrate Row */}
+         {/* Sound and Confetti Row */}
          <div style={{display:'flex', gap: 6}}>
             <button className="btn" onClick={() => setSoundEnabled(!soundEnabled)} style={{flex: 1, justifyContent: 'center', background: soundEnabled ? 'rgba(255,255,255,0.05)' : 'rgba(239,68,68,0.2)', color: soundEnabled ? 'inherit' : '#ef4444'}}>
                 {soundEnabled ? <Icons.Volume2 /> : <Icons.VolumeX />} {soundEnabled ? "Audio On" : "Muted"}
