@@ -23,6 +23,60 @@
         @keyframes float { 0% { background-position: 0 0; } 50% { background-position: 20px 20px; } 100% { background-position: 0 0; } }
         @keyframes modalPop { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes flipHeads { 
+            0% { transform: rotateY(0) scale(1); } 
+            50% { transform: rotateY(900deg) scale(1.4); } 
+            100% { transform: rotateY(1800deg) scale(1); } 
+        } 
+        @keyframes flipTails { 
+            0% { transform: rotateY(0) scale(1); } 
+            50% { transform: rotateY(990deg) scale(1.4); } 
+            100% { transform: rotateY(1980deg) scale(1); } 
+        }
+/* Specific animations for each dice outcome */
+@keyframes roll1 { 0% { transform: rotateX(0) rotateY(0); } 100% { transform: rotateX(720deg) rotateY(720deg); } }
+@keyframes roll2 { 0% { transform: rotateX(0) rotateY(0); } 100% { transform: rotateX(810deg) rotateY(720deg); } }
+@keyframes roll3 { 0% { transform: rotateX(0) rotateY(0); } 100% { transform: rotateX(720deg) rotateY(630deg); } } /* Fixed: Now lands on 3 */
+@keyframes roll4 { 0% { transform: rotateX(0) rotateY(0); } 100% { transform: rotateX(720deg) rotateY(810deg); } } /* Fixed: Now lands on 4 */
+@keyframes roll5 { 0% { transform: rotateX(0) rotateY(0); } 100% { transform: rotateX(630deg) rotateY(720deg); } }
+@keyframes roll6 { 0% { transform: rotateX(0) rotateY(0); } 100% { transform: rotateX(900deg) rotateY(720deg); } }
+/* Shared 3D cube styling */
+.dice-container {
+    perspective: 1000px;
+    width: 100px;
+    height: 100px;
+    margin: 40px auto;
+}
+.dice-cube {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+}
+.dice-face {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background: white;
+    border: 2px solid #cbd5e1;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    font-weight: 900;
+    color: #1e293b;
+    box-shadow: inset 0 0 15px rgba(0,0,0,0.1);
+}
+/* Face Positions */
+.face-1 { transform: translateZ(50px); }
+.face-2 { transform: rotateX(-90deg) translateZ(50px); }
+.face-3 { transform: rotateY(90deg) translateZ(50px); }
+.face-4 { transform: rotateY(-90deg) translateZ(50px); }
+.face-5 { transform: rotateX(90deg) translateZ(50px); }
+.face-6 { transform: rotateX(180deg) translateZ(50px); }
+
+        .glass-panel { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
     </style>
 </head>
 <body>
@@ -76,6 +130,9 @@
           Gender: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/></svg>,
           Jar: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-12a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-16a2 2 0 0 0-2-2z"/><line x1="6" y1="2" x2="6" y2="22"/><line x1="18" y1="2" x2="18" y2="22"/><line x1="4" y1="6" x2="20" y2="6"/></svg>,
           Circle: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/></svg>,
+          Speaker: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><circle cx="12" cy="14" r="4"/><line x1="12" y1="6" x2="12.01" y2="6"/></svg>,
+          Activity: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+          
         };
 
         // --- 2. THEMES & UTILS ---
@@ -89,7 +146,8 @@
               grad: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
               pattern: "radial-gradient(#334155 1px, transparent 1px)",
               bgSize: "20px 20px", 
-              anim: "none"
+              anim: "none",
+              name: "Swiss Army"
           },
           chalk: { 
               name: "Chalkboard", 
@@ -185,128 +243,67 @@
             if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume().catch(() => {});
             const ctx = audioCtxRef.current;
             
-            // --- MARBLE FX ---
-            if (type === 'clink') {
-                 const o = ctx.createOscillator();
-                 const g = ctx.createGain();
-                 o.connect(g); g.connect(ctx.destination);
-                 o.type = 'sine'; 
-                 o.frequency.setValueAtTime(2000 + Math.random()*500, ctx.currentTime); 
-                 g.gain.setValueAtTime(0, ctx.currentTime);
-                 g.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.01);
-                 g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-                 o.start(); o.stop(ctx.currentTime + 0.1);
-                 return;
-            }
+            // SYNTH HELPER
+            const playTone = (freq, type, duration, vol=0.1) => {
+                const o = ctx.createOscillator(); const g = ctx.createGain();
+                o.type = type; o.frequency.setValueAtTime(freq, ctx.currentTime);
+                o.connect(g); g.connect(ctx.destination);
+                g.gain.setValueAtTime(vol, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+                o.start(); o.stop(ctx.currentTime + duration);
+            };
 
-            // --- GAME SHOW FX ---
-            if (type === 'correct') {
-                 const o = ctx.createOscillator();
-                 const g = ctx.createGain();
-                 o.connect(g); g.connect(ctx.destination);
-                 o.type = 'sine'; o.frequency.setValueAtTime(600, ctx.currentTime);
-                 o.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
-                 g.gain.setValueAtTime(0, ctx.currentTime);
-                 g.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.05); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-                 o.start(); o.stop(ctx.currentTime + 0.5);
-                 setTimeout(() => {
-                     const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
-                     o2.connect(g2); g2.connect(ctx.destination);
-                     o2.type = 'triangle'; o2.frequency.setValueAtTime(1200, ctx.currentTime);
-                     g2.gain.setValueAtTime(0.2, ctx.currentTime); 
-                     g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-                     o2.start(); o2.stop(ctx.currentTime + 0.5);
-                 }, 100);
-                 return;
+            // SOUNDBOARD FX
+            if (type === 'airhorn') {
+                const fund = 400; 
+                [1, 1.5, 2, 2.5].forEach((mult, i) => {
+                    const o = ctx.createOscillator(); const g = ctx.createGain();
+                    o.type = 'sawtooth'; o.frequency.setValueAtTime(fund * mult, ctx.currentTime);
+                    o.frequency.linearRampToValueAtTime((fund * mult) - 50, ctx.currentTime + 0.4);
+                    o.connect(g); g.connect(ctx.destination);
+                    g.gain.setValueAtTime(0.1, ctx.currentTime); g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.4);
+                    o.start(); o.stop(ctx.currentTime + 0.4);
+                });
+                return;
             }
-            if (type === 'wrong') {
-                 const o = ctx.createOscillator();
-                 const g = ctx.createGain();
-                 o.connect(g); g.connect(ctx.destination);
-                 o.type = 'sawtooth'; o.frequency.setValueAtTime(150, ctx.currentTime);
-                 o.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.3);
-                 g.gain.setValueAtTime(0.2, ctx.currentTime);
-                 g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-                 o.start(); o.stop(ctx.currentTime + 0.4);
-                 return;
+            if (type === 'womp') {
+                const o = ctx.createOscillator(); const g = ctx.createGain();
+                o.type = 'triangle'; o.frequency.setValueAtTime(300, ctx.currentTime);
+                o.frequency.linearRampToValueAtTime(200, ctx.currentTime + 0.3);
+                o.connect(g); g.connect(ctx.destination);
+                g.gain.setValueAtTime(0.2, ctx.currentTime); g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
+                o.start(); o.stop(ctx.currentTime + 0.3);
+                setTimeout(() => {
+                    const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
+                    o2.type = 'triangle'; o2.frequency.setValueAtTime(200, ctx.currentTime);
+                    o2.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.5);
+                    o2.connect(g2); g2.connect(ctx.destination);
+                    g2.gain.setValueAtTime(0.2, ctx.currentTime); g2.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
+                    o2.start(); o2.stop(ctx.currentTime + 0.5);
+                }, 350);
+                return;
             }
-            if (type === 'drumroll') {
-                 const o = ctx.createOscillator();
-                 const g = ctx.createGain();
-                 o.connect(g); g.connect(ctx.destination);
-                 o.type = 'square'; o.frequency.setValueAtTime(50, ctx.currentTime);
-                 g.gain.setValueAtTime(0.05, ctx.currentTime); 
-                 o.start(); o.stop(ctx.currentTime + 1.0);
-                 return;
-            }
-
-            // --- STANDARD THEMES ---
-            if (theme === 'standard') {
-                if (type === 'tick') {
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.connect(gain); gain.connect(ctx.destination);
-                    osc.type = 'triangle'; osc.frequency.setValueAtTime(600, ctx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.05);
-                    gain.gain.setValueAtTime(0.2, ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
-                    osc.start(); osc.stop(ctx.currentTime + 0.06);
-                } else if (type === 'win') {
-                    [440, 554, 659, 880].forEach((freq, i) => {
+            if (type === 'crickets') {
+                const makeChirp = (delay) => {
+                    setTimeout(() => {
                         const o = ctx.createOscillator(); const g = ctx.createGain();
-                        o.type = 'square'; o.frequency.value = freq;
+                        o.type = 'sine'; o.frequency.setValueAtTime(4000, ctx.currentTime);
                         o.connect(g); g.connect(ctx.destination);
-                        g.gain.setValueAtTime(0, ctx.currentTime); g.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.05);
-                        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.0);
-                        o.start(ctx.currentTime + i * 0.1); o.stop(ctx.currentTime + 1.5);
-                    });
+                        g.gain.setValueAtTime(0, ctx.currentTime); g.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.01); g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.05);
+                        o.start(); o.stop(ctx.currentTime + 0.05);
+                    }, delay * 1000);
                 }
-            } else if (theme === 'arcade') {
-                if (type === 'tick') {
-                     const o = ctx.createOscillator();
-                     const g = ctx.createGain();
-                     o.type = 'square'; o.frequency.setValueAtTime(200, ctx.currentTime);
-                     o.connect(g); g.connect(ctx.destination);
-                     g.gain.setValueAtTime(0.1, ctx.currentTime); g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.03);
-                     o.start();
-                     o.stop(ctx.currentTime + 0.03);
-                } else if (type === 'win') {
-                     [523, 659, 784, 1046, 784, 1046].forEach((f, i) => {
-                         const o = ctx.createOscillator(); const g = ctx.createGain();
-                         o.type = 'sawtooth'; o.frequency.value = f;
-                         o.connect(g); g.connect(ctx.destination);
-                         g.gain.setValueAtTime(0.1, ctx.currentTime + i * 0.1); g.gain.linearRampToValueAtTime(0, ctx.currentTime + i * 0.1 + 0.1);
-                         o.start(ctx.currentTime + i * 0.1); o.stop(ctx.currentTime + i * 0.1 + 0.1);
-                     });
-                }
-            } else if (theme === 'spooky') {
-                if (type === 'tick') {
-                    const o = ctx.createOscillator();
-                    const g = ctx.createGain();
-                    o.type = 'sine'; o.frequency.setValueAtTime(100, ctx.currentTime); o.frequency.linearRampToValueAtTime(50, ctx.currentTime + 0.1);
-                    o.connect(g); g.connect(ctx.destination); g.gain.setValueAtTime(0.3, ctx.currentTime);
-                    g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.1);
-                    o.start(); o.stop(ctx.currentTime + 0.1);
-                } else if (type === 'win') {
-                     const o = ctx.createOscillator();
-                     const g = ctx.createGain();
-                     o.type = 'sine'; o.frequency.setValueAtTime(300, ctx.currentTime); o.frequency.linearRampToValueAtTime(600, ctx.currentTime + 1); o.frequency.linearRampToValueAtTime(200, ctx.currentTime + 2);
-                     o.connect(g); g.connect(ctx.destination);
-                     g.gain.setValueAtTime(0, ctx.currentTime); g.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.5); g.gain.linearRampToValueAtTime(0, ctx.currentTime + 2.5);
-                     o.start(); o.stop(ctx.currentTime + 2.5);
-                }
+                [0, 0.05, 0.1, 0.4, 0.45, 0.5].forEach(t => makeChirp(t));
+                return;
             }
-            if (type === 'bell') {
-              const osc = ctx.createOscillator();
-              const gain = ctx.createGain();
-              osc.connect(gain); gain.connect(ctx.destination);
-              osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, ctx.currentTime);
-              gain.gain.setValueAtTime(0.1, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2.0);
-              osc.start();
-              osc.stop(ctx.currentTime + 2.0);
-            }
-          } catch (e) { console.warn("Audio play failed", e);
-          }
+            if (type === 'bell') { playTone(800, 'sine', 1.5, 0.2); return; }
+            if (type === 'correct') { playTone(600, 'sine', 0.1); setTimeout(() => playTone(1200, 'sine', 0.4), 100); return; }
+            if (type === 'wrong') { playTone(150, 'sawtooth', 0.4, 0.2); return; }
+            if (type === 'clink') { playTone(2200 + Math.random()*500, 'sine', 0.1, 0.1); return; }
+            if (type === 'tick') { playTone(600, 'triangle', 0.05, 0.1); return; }
+            if (type === 'win') { [440, 554, 659, 880].forEach((f, i) => setTimeout(() => playTone(f, 'square', 0.5, 0.1), i*100)); return; }
+            if (type === 'drumroll') { playTone(50, 'square', 1.0, 0.05); return; }
+
+          } catch (e) { console.warn("Audio play failed", e); }
         };
 
         const FireConfetti = (canvas) => {
@@ -370,73 +367,73 @@ const move = (e) => {
     );
 };
 
-        const Timer = ({ audioCtx, onClose }) => {
-          const [mode, setMode] = useState('stopwatch');
-          const [time, setTime] = useState(0); 
-          const [isRunning, setIsRunning] = useState(false); const [initialTime, setInitialTime] = useState(0);
-          const [viewMode, setViewMode] = useState('window'); // 'window', 'fullscreen', 'mini'
-          const timeOptions = [{label:'10s',val:10},{label:'30s',val:30},{label:'1m',val:60},{label:'2m',val:120},{label:'5m',val:300},{label:'10m',val:600},{label:'20m',val:1200},{label:'30m',val:1800},{label:'45m',val:2700},{label:'1h',val:3600}];
-          
-          useEffect(() => {
-            let interval;
-            if (isRunning) { interval = setInterval(() => { setTime(prev => { if (mode === 'timer') { if (prev <= 1) { playSound('bell', audioCtx); setIsRunning(false); return 0; } return prev - 1; } return prev + 1; }); }, 1000); }
-            return () => clearInterval(interval);
-          }, [isRunning, mode, audioCtx]);
-          
-          const formatTime = (s) => { const mins = Math.floor(s/60); const secs = s%60; return mins>=60?`${Math.floor(mins/60)}:${(mins%60).toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`:`${mins}:${secs.toString().padStart(2,'0')}`; };
-          const handleSelectTime = (e) => { const seconds = parseInt(e.target.value); if (!isNaN(seconds)) { setMode('timer'); setInitialTime(seconds); setTime(seconds); setIsRunning(false); } };
-          const handleReset = () => { setIsRunning(false); setTime(mode === 'timer' ? initialTime : 0); };
+const Timer = ({ audioCtx, onClose }) => {
+  const [mode, setMode] = useState('stopwatch');
+  const [time, setTime] = useState(0); 
+  const [isRunning, setIsRunning] = useState(false); const [initialTime, setInitialTime] = useState(0);
+  const [viewMode, setViewMode] = useState('window'); 
+  const timeOptions = [{label:'10s',val:10},{label:'30s',val:30},{label:'1m',val:60},{label:'2m',val:120},{label:'5m',val:300},{label:'10m',val:600},{label:'20m',val:1200},{label:'30m',val:1800},{label:'45m',val:2700},{label:'1h',val:3600}];
+  
+  useEffect(() => {
+    let interval;
+    if (isRunning) { interval = setInterval(() => { setTime(prev => { if (mode === 'timer') { if (prev <= 1) { playSound('bell', audioCtx); setIsRunning(false); return 0; } return prev - 1; } return prev + 1; }); }, 1000); }
+    return () => clearInterval(interval);
+  }, [isRunning, mode, audioCtx]);
+  
+  const formatTime = (s) => { const mins = Math.floor(s/60); const secs = s%60; return mins>=60?`${Math.floor(mins/60)}:${(mins%60).toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`:`${mins}:${secs.toString().padStart(2,'0')}`; };
+  const handleSelectTime = (e) => { const seconds = parseInt(e.target.value); if (!isNaN(seconds)) { setMode('timer'); setInitialTime(seconds); setTime(seconds); setIsRunning(false); } };
+  const handleReset = () => { setIsRunning(false); setTime(mode === 'timer' ? initialTime : 0); };
 
-          if (viewMode === 'fullscreen') {
-              return (
-                  <div style={{position:'fixed', inset:0, zIndex:100, background:'rgba(15,23,42,0.95)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center'}}>
-                      <div style={{fontSize:'25vw', fontWeight:900, fontFamily:'monospace', fontVariantNumeric:'tabular-nums', lineHeight:1, color: time<=10 && mode==='timer' && time>0 ? '#ef4444' : '#fff'}}>
-                          {formatTime(time)}
-                      </div>
-                      <div style={{display:'flex', gap:20, marginTop:20}}>
-                          <button onClick={()=>setIsRunning(!isRunning)} className="btn" style={{background: isRunning?'#ef4444':'#22c55e', fontSize:'2rem', padding:'15px 40px'}}>{isRunning ? <Icons.Pause/> : <Icons.Play/>}</button>
-                          <button onClick={handleReset} className="btn" style={{background:'rgba(255,255,255,0.1)', fontSize:'2rem', padding:'15px 40px'}}><Icons.RotateCcw/></button>
-                          <button onClick={()=>setViewMode('window')} className="btn" style={{background:'rgba(255,255,255,0.1)', fontSize:'2rem', padding:'15px 40px'}}><Icons.Minimize/></button>
-                      </div>
-                  </div>
-              );
-          }
-          if (viewMode === 'mini') {
-              return (
-                  <DraggableBox x={16} y={70} style={{zIndex:40}}>
-                      <div style={{background: isRunning ? (time<=10 && mode==='timer' ? '#ef4444' : '#22c55e') : '#334155', padding:'8px 12px', borderRadius:30, display:'flex', alignItems:'center', gap:10, boxShadow:'0 4px 12px rgba(0,0,0,0.3)', border:'2px solid rgba(255,255,255,0.2)'}}>
-                          <span style={{fontWeight:800, fontFamily:'monospace', fontSize:'1.2rem'}}>{formatTime(time)}</span>
-                          <button onClick={()=>setIsRunning(!isRunning)} style={{background:'none', border:'none', color:'white', cursor:'pointer'}}>{isRunning ? <Icons.Pause/> : <Icons.Play/>}</button>
-                          <button onClick={()=>setViewMode('window')} style={{background:'none', border:'none', color:'white', cursor:'pointer'}}><Icons.Maximize/></button>
-                      </div>
-                  </DraggableBox>
-              );
-          }
-          return (
-            <DraggableBox x={16} y={70} style={{zIndex:40}}>
-                <div style={{
-                    padding:'16px', background:'rgba(15,23,42,0.9)', backdropFilter:'blur(10px)',
-                    borderRadius:'16px', border:'1px solid rgba(255,255,255,0.15)',
-                    boxShadow:'0 10px 30px rgba(0,0,0,0.4)', display:'flex', flexDirection:'column',
-                    gap:'12px', minWidth:'220px'
-                }}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                      <div style={{fontSize:'2.5rem',fontWeight:800,fontFamily:'monospace',lineHeight:1,fontVariantNumeric:'tabular-nums',color:time<=10&&mode==='timer'&&time>0?'#ef4444':'#fff'}}>{formatTime(time)}</div>
-                      <div style={{display:'flex', gap:4}}>
-                          <button onClick={()=>setViewMode('fullscreen')} className="btn" style={{padding:4, background:'transparent'}} title="Fullscreen"><Icons.Maximize/></button>
-                          <button onClick={()=>setViewMode('mini')} className="btn" style={{padding:4, background:'transparent'}} title="Minimize"><Icons.Minimize/></button>
-                          <button onClick={onClose} style={{background:'none',border:'none',color:'#ef4444',cursor:'pointer',padding:4}}><Icons.X/></button>
-                      </div>
-                  </div>
-                  <select onChange={handleSelectTime} style={{background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.1)',color:'#fff',padding:'8px',borderRadius:'8px',fontSize:'0.9rem',outline:'none',cursor:'pointer',width:'100%'}} defaultValue=""><option value="" disabled>Set Timer...</option>{timeOptions.map((opt,i)=>(<option key={i} value={opt.val} style={{color:'#000'}}>{opt.label}</option>))}</select>
-                  <div style={{display:'flex',gap:8}}>
-                    <button onClick={()=>setIsRunning(!isRunning)} className="btn" style={{flex:1,background:isRunning?'#ef4444':'#22c55e',color:'white',justifyContent:'center',padding:'10px'}}>{isRunning?"STOP":"START"}</button>
-                    <button onClick={handleReset} className="btn" style={{background:'rgba(255,255,255,0.1)',justifyContent:'center',padding:'10px',width:'44px'}}><Icons.RotateCcw/></button>
-                  </div>
-                </div>
-            </DraggableBox>
-          );
-        };
+  if (viewMode === 'fullscreen') {
+      return (
+          <div style={{position:'absolute', inset:0, zIndex:40, background:'rgba(15,23,42,0.95)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center'}}>
+              <div style={{fontSize:'25vmin', fontWeight:900, fontFamily:'monospace', fontVariantNumeric:'tabular-nums', lineHeight:1, color: time<=10 && mode==='timer' && time>0 ? '#ef4444' : '#fff'}}>
+                  {formatTime(time)}
+              </div>
+              <div style={{display:'flex', gap:20, marginTop:20}}>
+                  <button onClick={()=>setIsRunning(!isRunning)} className="btn" style={{background: isRunning?'#ef4444':'#22c55e', fontSize:'2rem', padding:'15px 40px'}}>{isRunning ? <Icons.Pause/> : <Icons.Play/>}</button>
+                  <button onClick={handleReset} className="btn" style={{background:'rgba(255,255,255,0.1)', fontSize:'2rem', padding:'15px 40px'}}><Icons.RotateCcw/></button>
+                  <button onClick={()=>setViewMode('window')} className="btn" style={{background:'rgba(255,255,255,0.1)', fontSize:'2rem', padding:'15px 40px'}}><Icons.Minimize/></button>
+              </div>
+          </div>
+      );
+  }
+  if (viewMode === 'mini') {
+      return (
+          <DraggableBox x={16} y={70} style={{zIndex:55}}>
+              <div style={{background: isRunning ? (time<=10 && mode==='timer' ? '#ef4444' : '#22c55e') : '#334155', padding:'8px 12px', borderRadius:30, display:'flex', alignItems:'center', gap:10, boxShadow:'0 4px 12px rgba(0,0,0,0.3)', border:'2px solid rgba(255,255,255,0.2)'}}>
+                  <span style={{fontWeight:800, fontFamily:'monospace', fontSize:'1.2rem'}}>{formatTime(time)}</span>
+                  <button onClick={()=>setIsRunning(!isRunning)} style={{background:'none', border:'none', color:'white', cursor:'pointer'}}>{isRunning ? <Icons.Pause/> : <Icons.Play/>}</button>
+                  <button onClick={()=>setViewMode('window')} style={{background:'none', border:'none', color:'white', cursor:'pointer'}}><Icons.Maximize/></button>
+              </div>
+          </DraggableBox>
+      );
+  }
+  return (
+    <DraggableBox x={16} y={70} style={{zIndex:55}}>
+        <div style={{
+            padding:'16px', background:'rgba(15,23,42,0.9)', backdropFilter:'blur(10px)',
+            borderRadius:'16px', border:'1px solid rgba(255,255,255,0.15)',
+            boxShadow:'0 10px 30px rgba(0,0,0,0.4)', display:'flex', flexDirection:'column',
+            gap:'12px', minWidth:'220px'
+        }}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div style={{fontSize:'2.5rem',fontWeight:800,fontFamily:'monospace',lineHeight:1,fontVariantNumeric:'tabular-nums',color:time<=10&&mode==='timer'&&time>0?'#ef4444':'#fff'}}>{formatTime(time)}</div>
+              <div style={{display:'flex', gap:4}}>
+                  <button onClick={()=>setViewMode('fullscreen')} className="btn" style={{padding:4, background:'transparent'}} title="Fullscreen"><Icons.Maximize/></button>
+                  <button onClick={()=>setViewMode('mini')} className="btn" style={{padding:4, background:'transparent'}} title="Minimize"><Icons.Minimize/></button>
+                  <button onClick={onClose} style={{background:'none',border:'none',color:'#ef4444',cursor:'pointer',padding:4}}><Icons.X/></button>
+              </div>
+          </div>
+          <select onChange={handleSelectTime} style={{background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.1)',color:'#fff',padding:'8px',borderRadius:'8px',fontSize:'0.9rem',outline:'none',cursor:'pointer',width:'100%'}} defaultValue=""><option value="" disabled>Set Timer...</option>{timeOptions.map((opt,i)=>(<option key={i} value={opt.val} style={{color:'#000'}}>{opt.label}</option>))}</select>
+          <div style={{display:'flex',gap:8}}>
+            <button onClick={()=>setIsRunning(!isRunning)} className="btn" style={{flex:1,background:isRunning?'#ef4444':'#22c55e',color:'white',justifyContent:'center',padding:'10px'}}>{isRunning?"STOP":"START"}</button>
+            <button onClick={handleReset} className="btn" style={{background:'rgba(255,255,255,0.1)',justifyContent:'center',padding:'10px',width:'44px'}}><Icons.RotateCcw/></button>
+          </div>
+        </div>
+    </DraggableBox>
+  );
+};
 
         const Scoreboard = ({ teams, scores, onUpdateScore, onClose }) => {
           return (
@@ -630,7 +627,7 @@ const HelpModal = ({ onClose }) => {
                 <div className="modal-overlay">
                   <div className="modal" style={{maxWidth:750, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '85vh', background: '#0f172a', textAlign: 'left'}}>
                      <div style={{padding: '20px 30px', background: 'rgba(255,255,255,0.03)', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                        <h2 style={{margin:0, fontSize:'1.4rem', fontWeight:900}}>Swiss Army Spinner Guide</h2>
+                        <h2 style={{margin:0, fontSize:'1.4rem', fontWeight:900}}>Teacher Quick-Start Guide</h2>
                         <button onClick={onClose} className="btn" style={{padding:6, border:'none', background:'rgba(239,68,68,0.1)', color:'#ef4444'}}><Icons.X/></button>
                      </div>
                      <div style={{display:'flex', gap: 8, padding: '12px 20px', background: 'rgba(0,0,0,0.2)'}}>
@@ -643,50 +640,46 @@ const HelpModal = ({ onClose }) => {
                             }}>{t.label}</div>
                         ))}
                      </div>
-
-                     <div style={{flex: 1, overflowY:'auto', padding: '30px', lineHeight: '1.6'}}>
+                     <div style={{flex: 1, overflowY:'auto', padding: '30px'}}>
                         {activeTab === 'start' && (
                             <div style={{animation: 'fadeIn 0.3s'}}>
-                                <h3 style={{color: '#3b82f6', marginTop: 0}}>🚀 Master Your Classroom</h3>
-                                <p><b>1. Setup:</b> Paste names into the sidebar. Tap a name "chip" to skip students who are absent.</p>
-                                <p><b>2. Save Sessions:</b> Click the <b>Save</b> icon to remember names, participation counts, and your current marble jar progress for tomorrow.</p>
-                                <p><b>3. Audio Control:</b> Use the <b>Mute</b> toggle in the sidebar to keep things quiet during tests, or click <b>🎉 Celebrate</b> for instant confetti.</p>
+                                <h3 style={{color: '#3b82f6', marginTop: 0}}>🚀 Get Running in 3 Steps</h3>
+                                <p><b>1. Add Names:</b> Paste your student list into the text area. Tap a name chip to temporarily hide a student.</p>
+                                <p><b>2. Save Session:</b> Click the <b>Save</b> icon. This remembers names, participation counts, and marble progress.</p>
+                                <p><b>3. Present:</b> Close the settings or use <b>Projector Mode</b> to maximize the wheel for your students.</p>
                             </div>
                         )}
-
                         {activeTab === 'spin' && (
                             <div style={{animation: 'fadeIn 0.3s'}}>
-                                <h3 style={{color: '#8b5cf6', marginTop: 0}}>🎡 Advanced Spinning</h3>
-                                <p>• <b>Concept Mode:</b> Dual wheels! Spin a student and a Bloom's level or task at once.</p>
-                                <p>• <b>Fair Mode:</b> Automatically removes winners so everyone gets a turn.</p>
-                                <p>• <b>Mystery Mode:</b> Hides student labels while spinning for maximum suspense.</p>
-                                <p>• <b>Rapid Fire:</b> Click "Pick 3" or "Pick 5" to select a group in one high-speed sequence.</p>
+                                <h3 style={{color: '#8b5cf6', marginTop: 0}}>🎡 Spin Mode Breakdown</h3>
+                                <p>• <b>Concept Mode:</b> Spins a Name + a Task (like Bloom's Taxonomy) at once.</p>
+                                <p>• <b>Fair Mode:</b> Winners are removed so everyone gets a turn.</p>
+                                <p>• <b>Mystery Mode:</b> Hides labels while spinning for maximum suspense.</p>
+                                <p>• <b>Battle Mode:</b> Selects two random "Contestants" for head-to-head challenges.</p>
                             </div>
                         )}
-
                         {activeTab === 'manage' && (
                             <div style={{animation: 'fadeIn 0.3s'}}>
-                                <h3 style={{color: '#10b981', marginTop: 0}}>🏫 Management Toolkit</h3>
-                                <p>• <b>Physics Marble Jar:</b> Track class goals. Marbles bounce with real-world gravity! Reach your goal for a full-screen celebration.</p>
-                                <p>• <b>Seating Architect:</b> Switch to <b>Architect</b> mode to drag seats into groups. Switch to <b>Students</b> to assign names to specific chairs.</p>
-                                <p>• <b>Heatmap:</b> Click the <b>Bar Chart</b> to see who hasn't been called on. Use <b>Export CSV</b> for your gradebook.</p>
+                                <h3 style={{color: '#10b981', marginTop: 0}}>🏫 Classroom Management</h3>
+                                <p>• <b>Marble Jar:</b> Set behavior goals. Click <b>+Drop</b> to celebrate class wins with physics-based marbles!</p>
+                                <p>• <b>Seating Chart:</b> Drag seats into your floor plan. Use <b>Architect</b> to build and <b>Students</b> to assign names.</p>
+                                <p>• <b>Heatmap:</b> Click the <b>Bar Chart</b> icon to see participation and export data for your gradebook.</p>
                             </div>
                         )}
-
                         {activeTab === 'tools' && (
                             <div style={{animation: 'fadeIn 0.3s'}}>
-                                <h3 style={{color: '#f59e0b', marginTop: 0}}>⚡ Interactive Features</h3>
-                                <p>• <b>Editable Poll:</b> Click the <b>Title</b> or <b>Option Labels</b> on the widget to type your own question! Use + and - for live voting.</p>
-                                <p>• <b>Billboard:</b> Project giant text or URLs. Link inputs will automatically generate a <b>QR Code</b> for students to scan.</p>
-                                <p>• <b>Chance Tools:</b> Result popups for Coin Flips and Dice Rolls can be closed to return instantly to the wheel.</p>
+                                <h3 style={{color: '#f59e0b', marginTop: 0}}>⚡ Essential Teacher Tools</h3>
+                                <p>• <b>Noise Meter:</b> Real-time visual feedback on classroom volume.</p>
+                                <p>• <b>Billboard:</b> Project giant text or a QR code link for students to scan.</p>
+                                <p>• <b>Strategy Spin:</b> Randomly select one of 25+ Kagan engagement strategies.</p>
                                 <div style={{marginTop: 20, padding: 15, background: 'rgba(255, 255, 255, 0.05)', borderRadius: 12, fontSize: '0.85rem'}}>
-                                    <b>🎹 Hotkeys:</b> [Space] to Spin/Close, [1] Ding, [2] Buzzer, [3] Drumroll.
+                                    📱 <b>Mobile Tips:</b> Grab window title bars to drag tools. The wheel auto-shrinks to make space for the Timer!
                                 </div>
                             </div>
                         )}
                      </div>
                      <div style={{padding: '20px 30px', background: 'rgba(0,0,0,0.2)', textAlign: 'center'}}>
-                        <button onClick={onClose} className="btn btn-primary" style={{width:'100%', fontSize:'1.1rem', padding:16, borderRadius: '16px'}}>Let's Learn!</button>
+                        <button onClick={onClose} className="btn btn-primary" style={{width:'100%', fontSize:'1.1rem', padding:16, borderRadius: '16px'}}>I'm Ready to Teach!</button>
                      </div>
                   </div>
                 </div>
@@ -747,13 +740,27 @@ const HelpModal = ({ onClose }) => {
         };
 
         // --- UPGRADED SEATING CHART (With Drag & Sub-Tools) ---
-        const SeatingChart = ({ names, onClose }) => {
+        const SeatingChart = ({ names, onClose, seats, setSeats, studentData, setStudentData }) => {
             const [mode, setMode] = useState('architect'); // 'architect' (build) or 'assign' (place students)
             const [architectTool, setArchitectTool] = useState('move'); // 'move', 'add', 'delete'
-            const [seats, setSeats] = useState([]);
-            const [studentData, setStudentData] = useState(names.map(n => ({ id: n, name: n, tag: 'A', assigned: null })));
             const [selectedStudent, setSelectedStudent] = useState(null);
             
+            // Sync Names if Roster Changed
+            useEffect(() => {
+                // If we have no data, init it.
+                if (studentData.length === 0) {
+                    setStudentData(names.map(n => ({ id: n, name: n, tag: 'A', assigned: null })));
+                } else {
+                    // Simple reconciliation: Add missing names
+                    const currentIds = studentData.map(s => s.id);
+                    const newNames = names.filter(n => !currentIds.includes(n));
+                    if (newNames.length > 0) {
+                        const newStudents = newNames.map(n => ({ id: n, name: n, tag: 'A', assigned: null }));
+                        setStudentData([...studentData, ...newStudents]);
+                    }
+                }
+            }, [names]);
+
             // DRAG STATE
             const [dragState, setDragState] = useState(null); // { id, offsetX, offsetY }
             const containerRef = useRef(null);
@@ -1017,8 +1024,7 @@ const HelpModal = ({ onClose }) => {
             );
         };
 
-const MarbleJar = ({ audioCtx, names, onClose, marbles, setMarbles, target, setTarget, reward, setReward }) => {
-            // --- STATE ---
+const MarbleJar = ({ audioCtx, names, onClose, marbles, setMarbles, target, setTarget, reward, setReward }) => {            // --- STATE ---
             const [viewMode, setViewMode] = useState('window'); 
             const [jarSize, setJarSize] = useState('medium'); 
             const [ballSize, setBallSize] = useState('medium');
@@ -1400,12 +1406,27 @@ const initPhysics = () => {
                 );
             }
 
-            // 2. FULLSCREEN VIEW
+// 2. FULLSCREEN VIEW (BOARD MODE)
             if (viewMode === 'full') {
                 return (
-                    <div style={{position:'fixed', inset:0, zIndex:100, background:'rgba(15,23,42,0.98)', display:'flex', flexDirection:'column', alignItems:'center', padding: '10px 20px'}}>
+                    <div style={{
+                        position:'absolute', 
+                        inset:0, 
+                        zIndex:40, // Layers BEHIND the sidebar but OVER the wheel
+                        background:'rgba(15,23,42,0.98)', 
+                        display:'flex', 
+                        flexDirection:'column', 
+                        alignItems:'center', 
+                        padding: '10px 20px'
+                    }}>
+                        
+                        {/* TOP BAR CONTROLS */}
                         <div style={{width: '100%', maxWidth: 800, display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: 80, flexShrink: 0, zIndex: 120}}>
+                            
+                            {/* Empty div for balance */}
                             <div style={{width: 100}}></div>
+                            
+                            {/* Score & Banner */}
                             <div style={{display:'flex', flexDirection:'column', alignItems:'center'}}>
                                 <div style={{
                                     background: showWinBanner ? '#22c55e' : 'rgba(255,255,255,0.1)', 
@@ -1420,16 +1441,19 @@ const initPhysics = () => {
                                 </div>
                                 {raffleWinner && (<div style={{marginTop: 10, background: '#fcd34d', color: '#78350f', padding: '5px 15px', borderRadius: 10, fontWeight: 800, animation: 'modalPop 0.5s'}}>WINNER: {raffleWinner}</div>)}
                             </div>
+
+                            {/* Window Controls */}
                             <div style={{display:'flex', gap:10, width:100, justifyContent:'flex-end'}}>
                                 <button onClick={() => setViewMode('window')} className="btn" style={{background:'rgba(255,255,255,0.1)', fontSize:'1.2rem', padding:'10px'}} title="Shrink"><Icons.Minimize/></button>
                                 <button onClick={onClose} className="btn" style={{background:'rgba(239,68,68,0.2)', color:'#ef4444', fontSize:'1.2rem', padding:'10px'}}><Icons.X/></button>
                             </div>
                         </div>
 
+                        {/* MIDDLE: PHYSICS AREA */}
                         <div style={{flex: 1, display:'flex', alignItems:'center', justifyContent:'center', width:'100%', position:'relative', minHeight: 0}}>
                             <div ref={jarWrapperRef} style={{position: 'relative', width: '100%', maxWidth: 600, height: '100%'}}>
                                 {showSlotEditor && (
-                                    <div style={{position:'absolute', inset:0, background:'rgba(0,0,0,0.8)', zIndex:20, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:20, backdropFilter:'blur(5px)'}}>
+                                    <div style={{position:'absolute', inset:0, background:'rgba(0,0,0,0.8)', zIndex:130, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:20, backdropFilter:'blur(5px)'}}>
                                         <h3 style={{color:'white', marginBottom:10}}>Edit Slots</h3>
                                         <textarea value={customSlotInput} onChange={(e)=>setCustomSlotInput(e.target.value)} style={{width:'100%', height:100, marginBottom:10, background:'rgba(255,255,255,0.1)', color:'white', border:'1px solid rgba(255,255,255,0.2)', borderRadius:8, padding:10}} placeholder="Enter labels separated by commas..."/>
                                         <button onClick={()=>setShowSlotEditor(false)} className="btn" style={{background:'#3b82f6', color:'white'}}>Done</button>
@@ -1441,6 +1465,7 @@ const initPhysics = () => {
                             </div>
                         </div>
 
+                        {/* BOTTOM CONTROLS */}
                         <div style={{display:'flex', gap:20, marginTop:10, width: '100%', maxWidth: 800, justifyContent:'center', alignItems:'center', zIndex: 120, flexShrink: 0, paddingBottom: 20}}>
                             <div style={{display:'flex', flexDirection:'column', gap:5}}>
                                 <div style={{display:'flex', gap:5}}>
@@ -1472,6 +1497,7 @@ const initPhysics = () => {
                                 <button onClick={addMarble} className="btn" style={{background: '#22c55e', fontSize:'2rem', padding:'15px 40px', borderRadius: 50, boxShadow:'0 10px 30px rgba(34,197,94,0.4)', border:'2px solid #86efac'}}>+ Drop</button>
                                 <button onClick={addGoldMarble} className="btn" style={{background: '#f59e0b', fontSize:'1.5rem', padding:'15px 20px', borderRadius: 50, boxShadow:'0 10px 30px rgba(245,158,11,0.4)', border:'2px solid #fcd34d', color:'#fff'}}>+5 Gold</button>
                             </div>
+                            
                             <div style={{display:'flex', flexDirection:'column', gap: 5}}>
                                 <button onClick={pickWinner} className="btn" style={{background:'#f59e0b', color: 'white', fontWeight:'bold', padding:'10px 20px'}}>Draw Winner</button>
                                 <div style={{display:'flex', gap:5}}>
@@ -1564,17 +1590,114 @@ const initPhysics = () => {
         // --- 4. MAIN APP ---
         function App() {
         const toggleFullScreen = () => {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => {
-            console.warn(`Error attempting to enable full-screen mode: ${err.message}`);
-        });
-        setProjectorMode(true);
-    } else {
-        document.exitFullscreen();
-        setProjectorMode(false);
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.warn(`Error attempting to enable full-screen mode: ${err.message}`);
+                });
+                setProjectorMode(true);
+            } else {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                }
+                setProjectorMode(false);
+            }
+        };
+        // --- VIEW CONTROLLER ---
+const showWheel = () => {
+    // 1. Close "Board Mode" / Full Screen overlays
+    if (trafficMode === 'full') setTrafficMode('sidebar');
+    setShowBreath(false);
+    
+    // 2. Close large modals that hide the wheel
+    setShowSeating(false);
+    setShowBillboard(false);
+    setShowGroups(false);
+    setShowLineup(false);
+    setShowPoll(false);
+    setShowBrainBreak(false);
+    
+    // 3. We DO NOT close small widgets (Timer, Noise, etc.) 
+    // because the teacher might be using them alongside the wheel.
+};
+        // --- CALM BREATH SUITE ---
+const [showBreath, setShowBreath] = useState(false);
+const [showBreathTips, setShowBreathTips] = useState(true);
+const [breathMode, setBreathMode] = useState('relax'); // 'relax', 'focus', 'balance'
+const [breathPhase, setBreathPhase] = useState('idle'); 
+const [breathCount, setBreathCount] = useState(4);
+const [breathText, setBreathText] = useState("Get Ready");
+
+// CONFIGURATIONS FOR THE 3 MODES
+const BREATH_PATTERNS = {
+    relax: { 
+        name: "Anxiety Relief (4-7-8)", 
+        color: '#8b5cf6', // Violet
+        phases: { in: 4, hold: 7, out: 8, rest: 1 } 
+    },
+    focus: { 
+        name: "Box Breathing (4-4-4-4)", 
+        color: '#3b82f6', // Blue
+        phases: { in: 4, hold: 4, out: 4, rest: 4 } 
+    },
+    balance: { 
+        name: "Coherence (5-5)", 
+        color: '#10b981', // Emerald
+        phases: { in: 5, hold: 0, out: 5, rest: 0 } 
     }
 };
+
+// INITIALIZER
+useEffect(() => {
+    if (showBreath) {
+        setBreathPhase('in');
+        setBreathCount(BREATH_PATTERNS[breathMode].phases.in);
+        setBreathText("Breathe In");
+    } else {
+        setBreathPhase('idle');
+    }
+}, [showBreath, breathMode]);
+
+// MAIN TIMER LOOP
+useEffect(() => {
+    if (!showBreath) return;
+
+    const timer = setInterval(() => {
+        setBreathCount(prev => {
+            if (prev > 1) return prev - 1;
+
+            // PHASE SWITCHER LOGIC
+            const config = BREATH_PATTERNS[breathMode].phases;
+            let nextPhase = 'in';
+            let nextText = "Breathe In";
+            let nextDuration = config.in;
+
+            if (breathPhase === 'in') {
+                nextPhase = 'hold'; nextText = "Hold"; nextDuration = config.hold;
+            } else if (breathPhase === 'hold') {
+                nextPhase = 'out'; nextText = "Breathe Out"; nextDuration = config.out;
+            } else if (breathPhase === 'out') {
+                nextPhase = 'rest'; nextText = "Rest"; nextDuration = config.rest;
+            } else if (breathPhase === 'rest') {
+                nextPhase = 'in'; nextText = "Breathe In"; nextDuration = config.in;
+            }
+
+            // AUTO-SKIP ZERO DURATION PHASES (For 'Balance' mode)
+            if (nextDuration === 0) {
+                // If the next phase is 0, we recursively skip to the one after
+                if(nextPhase === 'hold') { nextPhase = 'out'; nextText = "Breathe Out"; nextDuration = config.out; }
+                else if(nextPhase === 'rest') { nextPhase = 'in'; nextText = "Breathe In"; nextDuration = config.in; }
+            }
+
+            setBreathPhase(nextPhase);
+            setBreathText(nextText);
+            return nextDuration;
+        });
+    }, 1000);
+
+    return () => clearInterval(timer);
+}, [showBreath, breathPhase, breathMode]);
           const [names, setNames] = useState(defaultNames);
+          const [fastMode, setFastMode] = useState(false);
           const [inputText, setInputText] = useState(defaultNames.join('\n'));
           const [savedLists, setSavedLists] = useState({}); const [newListName, setNewListName] = useState("");
           const [currentThemeId, setCurrentThemeId] = useState('default');
@@ -1588,7 +1711,8 @@ const initPhysics = () => {
           const [hubImage, setHubImage] = useState(null); const [showHelp, setShowHelp] = useState(false);
           const [showImport, setShowImport] = useState(false);
           const [showGroups, setShowGroups] = useState(false);
-          const [hiddenNames, setHiddenNames] = useState([]); 
+          const [hiddenNames, setHiddenNames] = useState([]);
+          const [hiddenConcepts, setHiddenConcepts] = useState([]); 
           const [concepts, setConcepts] = useState(defaultConcepts); 
           const [showConceptEdit, setShowConceptEdit] = useState(false);
           const [battleMode, setBattleMode] = useState(false);
@@ -1615,6 +1739,10 @@ const initPhysics = () => {
           const [marbles, setMarbles] = useState(0);
           const [marbleTarget, setMarbleTarget] = useState(10);
           const [marbleReward, setMarbleReward] = useState("");
+          
+          // LIFTED SEATING STATE (To allow saving)
+          const [seats, setSeats] = useState([]);
+          const [seatingData, setSeatingData] = useState([]); // {id, name, tag, assigned}
 
           // NOISE METER
           const [showNoiseMeter, setShowNoiseMeter] = useState(false);
@@ -1712,20 +1840,8 @@ const initPhysics = () => {
               }, 100);
           };
 
-const [showPoll, setShowPoll] = useState(false);
-          const [pollData, setPollData] = useState({
-              question: "CLASS VOTE",
-              options: { A: 0, B: 0, C: 0, D: 0 },
-              labels: { A: "Option A", B: "Option B", C: "Option C", D: "Option D" }
-          });
-
-          const updatePollLabel = (key, val) => {
-              setPollData(prev => ({ ...prev, labels: { ...prev.labels, [key]: val } }));
-          };
-
-          const updatePollCount = (key, delta) => {
-              setPollData(prev => ({ ...prev, options: { ...prev.options, [key]: Math.max(0, prev.options[key] + delta) } }));
-          };
+          const [showPoll, setShowPoll] = useState(false);
+          const [pollCounts, setPollCounts] = useState({ A: 0, B: 0, C: 0, D: 0 });
           const [showLineup, setShowLineup] = useState(false);
           const [lineupList, setLineupList] = useState([]);
           const [isLineupAnimating, setIsLineupAnimating] = useState(false);
@@ -1769,21 +1885,24 @@ const [showPoll, setShowPoll] = useState(false);
           useEffect(() => { localStorage.setItem('spinner_scratchpad', scratchpad); }, [scratchpad]);
 
 const runChance = (type) => {
+              setWinner(null); // Clear single winner popup
+              setChanceAnim(null); // Reset existing anims
+              
               if (type === 'num') {
                   const numbers = Array.from({length: 10}, (_, i) => (i + 1).toString());
-                  setTempWheelItems(numbers); setTimeout(() => spin(), 100);
+                  setTempWheelItems(numbers); 
+                  setTimeout(() => spin(), 100);
               } else if (type === 'coin') {
-                  const res = Math.random() < 0.5 ? "🤴 HEADS" : "🦅 TAILS";
-                  setChanceResult(res.includes("🤴") ? "HEADS" : "TAILS"); 
+                  const result = Math.random() < 0.5 ? "HEADS" : "TAILS";
+                  setChanceResult(result); 
                   setChanceAnim('coin');
-                  // Trigger the result popup after the 2.5s flip animation
-                  setTimeout(() => { setWinner(res); setChanceAnim(null); }, 2500);
+                  if (soundEnabled) playSound('drumroll', audioCtxRef);
+                  // Auto-play win sound after flip
+                  setTimeout(() => { if(soundEnabled) playSound('win', audioCtxRef); }, 2500);
               } else if (type === 'dice') {
-                  const res = Math.floor(Math.random() * 6) + 1;
-                  setChanceResult(res); 
+                  setChanceResult(Math.floor(Math.random() * 6) + 1); 
                   setChanceAnim('dice');
-                  // Trigger the result popup after the 2s roll animation
-                  setTimeout(() => { setWinner(`🎲 ROLLED A ${res}`); setChanceAnim(null); }, 2000);
+                  if (soundEnabled) playSound('tick', audioCtxRef);
               }
           };
 
@@ -1800,70 +1919,69 @@ const runChance = (type) => {
 
           const theme = THEMES[currentThemeId];
           const activeNames = useMemo(() => tempWheelItems || names.filter(n => !hiddenNames.includes(n)), [names, hiddenNames, tempWheelItems]);
+          const activeConcepts = useMemo(() => concepts.filter(c => !hiddenConcepts.includes(c)), [concepts, hiddenConcepts]);
+
           useEffect(() => { const saved = localStorage.getItem('spinner_lists'); if(saved) setSavedLists(JSON.parse(saved)); }, []);
 
-          const saveList = () => { 
-              const nameToSave = newListName.trim();
-              if(!nameToSave) return;
-              if (savedLists[nameToSave]) {
-                  if (!window.confirm(`Class "${nameToSave}" already exists.\n\nDo you want to UPDATE it with the current names and settings?`)) { return; }
-              }
-              const saveData = {
-                  names: names, 
-                  theme: currentThemeId, 
-                  bloomMode: bloomMode, 
-                  battleMode: battleMode,
-                  mysteryMode: mysteryMode, 
-                  concepts: concepts, 
-                  soundTheme: soundTheme, 
-                  fairMode: fairMode, 
-                  rapidTarget: rapidTarget,
-                  // NEW: Save additional state
-                  stickies: stickies,
-                  participation: participation,
-marbles: marbles,
-marbleTarget: marbleTarget,
-marbleReward: marbleReward
-              };
-              setSavedLists(prev => {
-                  const updated = {...prev, [nameToSave]: saveData};
-                  try { localStorage.setItem('spinner_lists', JSON.stringify(updated)); } catch(e) { alert("Error: Could not save to browser storage (Quota Exceeded?)"); }
-                  return updated;
-              });
-              alert(`Session "${nameToSave}" saved successfully!`);
-          };
+          const updateNames = (t) => { setInputText(t); setNames(t.split('\n').filter(n=>n.trim())); };
+          const performImport = (l) => { setNames(l); setInputText(l.join('\n')); setShowImport(false); setHiddenNames([]); setParticipation({}); };
+          const toggleHidden = (n) => { setHiddenNames(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n]); };
+          const shuffleNames = () => { const s=[...names].sort(()=>Math.random()-0.5); setInputText(s.join('\n')); setNames(s); };
+          
+const saveList = () => { 
+    const nameToSave = newListName.trim();
+    if(!nameToSave) {
+        alert("Please enter a Session Name first!");
+        return;
+    }
 
-          const handleLoadClass = (key) => {
-              const data = savedLists[key];
-              if (!data) return;
-              setNewListName(key); 
-              
-              if (Array.isArray(data)) {
-                  // Legacy format (just array of names)
-                  setNames(data); setInputText(data.join('\n'));
-                  setBattleMode(false); setBloomMode('off'); setMysteryMode(false);
-                  setStickies([]); setParticipation({}); setMarbles(0);
-              } else {
-                  // New object format
-                  if(data.names) { setNames(data.names); setInputText(data.names.join('\n')); }
-                  if(data.theme) setCurrentThemeId(data.theme);
-                  if(data.bloomMode !== undefined) setBloomMode(data.bloomMode);
-                  if(data.battleMode !== undefined) setBattleMode(data.battleMode);
-                  if(data.mysteryMode !== undefined) setMysteryMode(data.mysteryMode);
-                  if(data.concepts) setConcepts(data.concepts);
-                  if(data.soundTheme) setSoundTheme(data.soundTheme);
-                  if(data.fairMode !== undefined) setFairMode(data.fairMode);
-                  if(data.rapidTarget) setRapidTarget(data.rapidTarget);
-                  
-                  // Load new fields
-                  if(data.stickies) setStickies(data.stickies); else setStickies([]);
-                  if(data.participation) setParticipation(data.participation); else setParticipation({});
-                  if(data.marbles !== undefined) setMarbles(data.marbles);
-                  if(data.marbleTarget !== undefined) setMarbleTarget(data.marbleTarget);
-                  if(data.marbleReward !== undefined) setMarbleReward(data.marbleReward); else setMarbleReward("");
-              }
-              setHiddenNames([]); setWinner(null);
-          };
+    // Force the roster to update from the text box before saving
+    const currentRoster = inputText.split('\n').filter(n => n.trim());
+    setNames(currentRoster);
+
+    const saveData = {
+        names: currentRoster, 
+        theme: currentThemeId, 
+        bloomMode, battleMode, mysteryMode, concepts, soundTheme, fairMode,
+        stickies, participation, marbles, marbleTarget, marbleReward,
+        seats, seatingData, todoList, hiddenNames, scratchpad
+    };
+
+    setSavedLists(prev => {
+        const updated = {...prev, [nameToSave]: saveData};
+        localStorage.setItem('spinner_lists', JSON.stringify(updated));
+        return updated;
+    });
+    alert(`Session "${nameToSave}" saved!`);
+};
+
+const handleLoadClass = (key) => {
+    const data = savedLists[key];
+    if (!data) return;
+    setNewListName(key); 
+    
+    if (Array.isArray(data)) {
+        // Handle old legacy saves
+        setNames(data); setInputText(data.join('\n'));
+        setHiddenNames([]); setSeats([]); setSeatingData([]); setTodoList([]);
+    } else {
+        // Load all tool data
+        if(data.names) { setNames(data.names); setInputText(data.names.join('\n')); }
+        if(data.theme) setCurrentThemeId(data.theme);
+        if(data.marbles !== undefined) setMarbles(data.marbles);
+        if(data.marbleTarget !== undefined) setMarbleTarget(data.marbleTarget);
+        if(data.participation) setParticipation(data.participation);
+        if(data.stickies) setStickies(data.stickies);
+        if(data.todoList) setTodoList(data.todoList);
+        if(data.seats) setSeats(data.seats);
+        if(data.seatingData) setSeatingData(data.seatingData);
+        if(data.hiddenNames) setHiddenNames(data.hiddenNames);
+        if(data.scratchpad) setScratchpad(data.scratchpad);
+    }
+    setWinner(null);
+    // REMOVED: setShowSettings(false); 
+    // The sidebar will now stay open so you can quickly switch between groups!
+};
 
           const handleDeleteClass = (e, key) => {
               e.preventDefault(); e.stopPropagation(); 
@@ -1874,28 +1992,39 @@ marbleReward: marbleReward
                   });
               }
           };
-          
-          const updateNames = (t) => { setInputText(t); setNames(t.split('\n').filter(n=>n.trim())); };
-          const performImport = (l) => { setNames(l); setInputText(l.join('\n')); setShowImport(false); setHiddenNames([]); setParticipation({}); };
-          const toggleHidden = (n) => { setHiddenNames(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n]); };
-          const shuffleNames = () => { const s=[...names].sort(()=>Math.random()-0.5); setInputText(s.join('\n')); setNames(s); };
-          
-          const removeWinner = () => {
-            if (winner && !rapidMode && winner !== "Group Complete!" && !tempWheelItems) {
-                 setHiddenNames(prev => [...prev, winner]);
-            }
-            setWinner(null); setBloomWinner(null); setTempWheelItems(null); setChanceAnim(null); setWinnerTimerActive(false); 
-            if(rapidMode) { setRapidMode(false); setRapidWinners([]); }
+
+          const handleImageUpload = (e) => { 
+              const f = e.target.files[0]; 
+              if(f){ 
+                  const r = new FileReader(); 
+                  r.onload = (evt) => { 
+                      const i = new Image(); 
+                      i.onload = () => {
+                          setHubImage(i);
+                          // Use activeNames here so it doesn't crash on upload
+                          if(canvasRef.current) drawWheel(canvasRef.current, bloomMode === 'solo' ? activeConcepts : activeNames, rotationRef.current, pointerRef.current, mysteryMode);
+                      }; 
+                      i.src = evt.target.result; 
+                  }; 
+                  r.readAsDataURL(f); 
+              } 
           };
 
-          const handleImageUpload = (e) => { const f=e.target.files[0]; if(f){ const r=new FileReader(); r.onload=(evt)=>{ const i=new Image(); i.onload=()=>{setHubImage(i);
-          if(canvasRef.current)drawWheel(canvasRef.current, bloomMode === 'solo' ? concepts : activeNames, rotationRef.current, pointerRef.current, mysteryMode);}; i.src=evt.target.result; }; r.readAsDataURL(f); } };
           const handleStartScoring = (g) => { setActiveTeams(g); setTeamScores(new Array(g.length).fill(0)); setShowGroups(false); };
           const handleUpdateScore = (i,c) => { const n=[...teamScores]; n[i]+=c; setTeamScores(n); if(soundEnabled) playSound('tick', audioCtxRef, soundTheme); };
-          const toggleBloomMode = () => { setBattleMode(false); if (bloomMode === 'off') setBloomMode('solo'); else if (bloomMode === 'solo') setBloomMode('dual'); else setBloomMode('off'); };
 
-          const startRapidFire = (count) => {
-              setRapidMode(true); setRapidTarget(count); setRapidWinners([]); spin();
+const toggleBloomMode = () => { setBattleMode(false); if (bloomMode === 'off') setBloomMode('solo'); else if (bloomMode === 'solo') setBloomMode('dual'); else setBloomMode('off'); };
+
+const startRapidFire = (count) => {
+              if (activeNames.length < count) return;
+              // Pre-select the group of winners
+              const winners = [...activeNames]
+                  .sort(() => Math.random() - 0.5)
+                  .slice(0, count);
+              setRapidWinners(winners);
+              setRapidMode(true);
+              setRapidTarget(count);
+              spin(); // Start the visual spin
           };
 
           const exportCSV = () => {
@@ -1941,24 +2070,41 @@ marbleReward: marbleReward
             ctx.beginPath(); ctx.moveTo(0, -15); ctx.lineTo(-40, 0); ctx.lineTo(0, 15); ctx.closePath(); ctx.fillStyle = theme.text; ctx.shadowColor = "rgba(0,0,0,0.3)"; ctx.shadowBlur = 5; ctx.fill(); ctx.restore();
           };
 
-          const spin = () => {
+const spin = () => {
             if (isSpinning || (bloomMode !== 'solo' && activeNames.length < 2)) return;
             setWinner(null); setBloomWinner(null); setWinnerTimerActive(false);
             if (battleMode && battleStage === 'idle') { setBattleStage('spinning1'); setBattleContestants([null, null]); }
-            velocityRef.current = 0.4 + Math.random() * 0.4;
-            if (bloomMode === 'dual') velocityRef2.current = 0.4 + Math.random() * 0.3;
-            isSpinningRef.current = true; setIsSpinning(true);
+
+            if (fastMode) {
+                // IMMEDIATE SELECTION
+                const mainList = bloomMode === 'solo' ? activeConcepts : activeNames;
+                const i = Math.floor(Math.random() * mainList.length);
+                const w = mainList[i];
+                if (w) {
+                    setWinner(w);
+                    setParticipation(prev => ({ ...prev, [w]: (prev[w] || 0) + 1 }));
+                    if (bloomMode === 'dual' && activeConcepts.length > 0) {
+                        setBloomWinner(activeConcepts[Math.floor(Math.random() * activeConcepts.length)]);
+                    }
+                    if (soundEnabled) playSound('win', audioCtxRef, soundTheme);
+                    FireConfetti(confettiCanvasRef.current);
+                }
+            } else {
+                // NORMAL ANIMATED SPIN
+                velocityRef.current = 0.4 + Math.random() * 0.4;
+                if (bloomMode === 'dual') velocityRef2.current = 0.4 + Math.random() * 0.3;
+                isSpinningRef.current = true; setIsSpinning(true);
+            }
           };
 
-          useEffect(() => {
+useEffect(() => {
             if (!isSpinning) return;
             let af;
             const animate = () => {
                 pointerRef.current *= 0.85;
                 if (velocityRef.current > 0.002) {
                     velocityRef.current *= 0.985; rotationRef.current += velocityRef.current;
-                    if (rotationRef.current >= Math.PI * 2) rotationRef.current -= Math.PI * 2;
-                    const currentList = bloomMode === 'solo' ? concepts : activeNames;
+                    const currentList = bloomMode === 'solo' ? activeConcepts : activeNames;
                     if (soundEnabled && currentList.length > 0) {
                          const slice = (2 * Math.PI) / currentList.length; const passed = Math.floor(rotationRef.current / slice);
                          if (passed !== lastTickRef.current) { playSound('tick', audioCtxRef, soundTheme); lastTickRef.current = passed; pointerRef.current = 0.3 + Math.random() * 0.1; }
@@ -1968,76 +2114,75 @@ marbleReward: marbleReward
                 if (bloomMode === 'dual') {
                     pointerRef2.current *= 0.85;
                     if (velocityRef2.current > 0.002) { velocityRef2.current *= 0.985; rotationRef2.current += velocityRef2.current;
-                    if (rotationRef2.current >= Math.PI * 2) rotationRef2.current -= Math.PI * 2;
                     } else velocityRef2.current = 0;
                 }
 
-                const mainList = bloomMode === 'solo' ? concepts : activeNames;
+                const mainList = bloomMode === 'solo' ? activeConcepts : activeNames;                
                 drawWheel(canvasRef.current, mainList, rotationRef.current, pointerRef.current, mysteryMode);
-                if (bloomMode === 'dual') drawWheel(canvasRef2.current, concepts, rotationRef2.current, pointerRef2.current, false);
+                if (bloomMode === 'dual') drawWheel(canvasRef2.current, activeConcepts, rotationRef2.current, pointerRef2.current, false);
+
                 if (velocityRef.current === 0 && (bloomMode !== 'dual' || velocityRef2.current === 0)) {
                     isSpinningRef.current = false; pointerRef.current = 0; pointerRef2.current = 0; setIsSpinning(false);
-                    let w = null;
-                    if (mainList.length > 0) { const slice = (2 * Math.PI) / mainList.length;
+                    const slice = (2 * Math.PI) / mainList.length;
                     let p = (0 - rotationRef.current) % (2 * Math.PI); if (p < 0) p += 2 * Math.PI;
-                    const i = Math.floor(p / slice); if (i >= 0 && i < mainList.length) w = mainList[i];
-                    }
-                    let bw = null;
-                    if (bloomMode === 'dual') { const slice = (2 * Math.PI) / concepts.length;
-                    let p = (0 - rotationRef2.current) % (2 * Math.PI); if (p < 0) p += 2 * Math.PI;
-                    const i = Math.floor(p / slice); if (i >= 0 && i < concepts.length) bw = concepts[i];
-                    }
+                    const i = Math.floor(p / slice);
+                    const w = mainList[i];
 
-                    if (rapidMode && w) {
-                         const newWinners = [...rapidWinners, w];
-                         setRapidWinners(newWinners); setHiddenNames(prev => [...prev, w]); 
-                         setParticipation(prev => ({ ...prev, [w]: (prev[w] || 0) + 1 }));
-                         playSound('win', audioCtxRef, soundTheme); FireConfetti(confettiCanvasRef.current);
-                         if (newWinners.length < rapidTarget && activeNames.length > 1) {
-                             setTimeout(() => { velocityRef.current = 0.5 + Math.random() * 0.5; isSpinningRef.current = true; setIsSpinning(true); }, 800);
-                         } else { setWinner("Group Complete!"); }
-                         return;
-                    }
-
-                    if (battleMode && battleStage === 'spinning2' && w === battleContestants[0]) { velocityRef.current = 0.05 + Math.random() * 0.05; af = requestAnimationFrame(animate); return; }
-
-                    if (battleMode) {
-                        if (battleStage === 'spinning1') { setBattleContestants([w, null]);
-                        setBattleStage('waiting'); if (soundEnabled) playSound('tick', audioCtxRef, soundTheme); setTimeout(() => { setBattleStage('spinning2'); velocityRef.current = 0.4 + Math.random() * 0.4; isSpinningRef.current = true; setIsSpinning(true); }, 1000);
-                        } else if (battleStage === 'spinning2') { setBattleContestants(prev => [prev[0], w]);
-                        setBattleStage('finished'); if (soundEnabled) playSound('win', audioCtxRef, soundTheme); FireConfetti(confettiCanvasRef.current); }
-                    } else if (w) {
-                        setWinner(w); if (bw) setBloomWinner(bw);
-                        if (bloomMode !== 'solo') { 
-                            const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                            setWinnerHistory(p => [{name: w, time: ts}, ...p].slice(0, 10)); 
-                            if (fairMode && !hiddenNames.includes(w)) { setHiddenNames(prev => [...prev, w]); }
+if (w) {
+if (rapidMode) {
+                        setWinner("Rapid Fire Winners!"); 
+                        rapidWinners.forEach(rw => {
+                            setParticipation(prev => ({ ...prev, [rw]: (prev[rw] || 0) + 1 }));
+                        });
+                    } else {
+                            setWinner(w);
                             setParticipation(prev => ({ ...prev, [w]: (prev[w] || 0) + 1 }));
+                            if (bloomMode === 'dual' && activeConcepts.length > 0) {
+                                const slice2 = (2 * Math.PI) / activeConcepts.length;
+                                let p2 = (0 - rotationRef2.current) % (2 * Math.PI); if (p2 < 0) p2 += 2 * Math.PI;
+                                setBloomWinner(activeConcepts[Math.floor(p2 / slice2)]);
+                            }
                         }
                         if (soundEnabled) playSound('win', audioCtxRef, soundTheme);
-                        setTimeout(() => FireConfetti(confettiCanvasRef.current), 10);
+                        FireConfetti(confettiCanvasRef.current);
                     }
+
                 } else af = requestAnimationFrame(animate);
             };
-            animate(); return () => cancelAnimationFrame(af);
-          }, [isSpinning, activeNames, hiddenNames, soundEnabled, mysteryMode, soundTheme, battleMode, battleStage, battleContestants, bloomMode, concepts, fairMode, rapidMode, rapidTarget, rapidWinners]);
+animate(); return () => cancelAnimationFrame(af);
+          }, [isSpinning, activeNames, activeConcepts, bloomMode, soundEnabled, mysteryMode, soundTheme]);
 
-          useEffect(() => { 
-              if (!isSpinning) {
-                  const mainList = bloomMode === 'solo' ? concepts : activeNames;
-                  drawWheel(canvasRef.current, mainList, rotationRef.current, pointerRef.current, mysteryMode);
-                  if (bloomMode === 'dual') drawWheel(canvasRef2.current, concepts, rotationRef2.current, pointerRef2.current, false);
-               }
-          }, [names, hiddenNames, currentThemeId, mysteryMode, isSpinning, hubImage, bloomMode, concepts, activeNames]);
+useEffect(() => { 
+    if (!isSpinning) {
+        const mainList = bloomMode === 'solo' ? activeConcepts : activeNames;
+        drawWheel(canvasRef.current, mainList, rotationRef.current, pointerRef.current, mysteryMode);
+        if (bloomMode === 'dual') {
+            drawWheel(canvasRef2.current, activeConcepts, rotationRef2.current, pointerRef2.current, false);
+        }
+    }
+}, [names, hiddenNames, hiddenConcepts, currentThemeId, mysteryMode, isSpinning, hubImage, bloomMode, activeNames, activeConcepts]);
 
-          useEffect(() => {
+useEffect(() => {
               const handleResize = () => {
-                  const mainList = bloomMode === 'solo' ? concepts : activeNames;
+                  const mainList = bloomMode === 'solo' ? activeConcepts : activeNames;
                   drawWheel(canvasRef.current, mainList, rotationRef.current, pointerRef.current, mysteryMode);
-                  if (bloomMode === 'dual') { drawWheel(canvasRef2.current, concepts, rotationRef2.current, pointerRef2.current, false); }
+                  if (bloomMode === 'dual') { 
+                      drawWheel(canvasRef2.current, activeConcepts, rotationRef2.current, pointerRef2.current, false); 
+                  }
               };
-              window.addEventListener('resize', handleResize); return () => window.removeEventListener('resize', handleResize);
-          }, [bloomMode, concepts, activeNames, mysteryMode]);
+              window.addEventListener('resize', handleResize); 
+              return () => window.removeEventListener('resize', handleResize);
+          }, [bloomMode, concepts, activeNames, activeConcepts, mysteryMode]);
+
+const removeWinner = () => {
+            if (rapidMode && rapidWinners.length > 0) {
+                 setHiddenNames(prev => [...prev, ...rapidWinners]);
+            } else if (winner && winner !== "Rapid Fire Winners!" && !tempWheelItems) {
+                 setHiddenNames(prev => [...prev, winner]);
+            }
+            setWinner(null); setBloomWinner(null); setTempWheelItems(null); setChanceAnim(null);
+            if(rapidMode) { setRapidMode(false); setRapidWinners([]); }
+          };
 
           useEffect(() => {
               const k = (e) => {
@@ -2048,11 +2193,13 @@ marbleReward: marbleReward
                       else if (battleStage === 'finished') setBattleStage('idle'); 
                       else if (!isSpinning) spin(); 
                   }
-                  if (e.code === 'Escape') { 
+if (e.code === 'Escape') { 
                       if (winner) setWinner(null); 
                       else if (battleStage === 'finished') setBattleStage('idle'); 
+                      else if (chanceAnim) setChanceAnim(null); // Added this line
                       else { setShowHelp(false); setShowImport(false); setShowGroups(false); setProjectorMode(false); } 
                   }
+
                   if (e.key === '1') playSound('correct', audioCtxRef);
                   if (e.key === '2') playSound('wrong', audioCtxRef);
                   if (e.key === '3') playSound('drumroll', audioCtxRef);
@@ -2225,7 +2372,7 @@ marbleReward: marbleReward
             .chip.hidden { opacity: 0.4; text-decoration: line-through; background: transparent; border-color: transparent; }
 
             .projector-btn { position: absolute; top: 20px; right: 20px; z-index: 30; }
-            .mobile-toggle { position: absolute; top: 20px; left: 20px; z-index: 30; }
+            .mobile-toggle { position: absolute; top: 20px; left: 20px; z-index: 60; }
             .wheel-container { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 0; flex-shrink: 1; }
 
 @media (max-width: 1024px) {
@@ -2246,10 +2393,10 @@ marbleReward: marbleReward
             <div className="app" style={cssVariables}>
                 <style>{styles}</style>
                 <canvas ref={confettiCanvasRef} style={{position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 50}} />
-                <button onClick={() => setShowSettings(true)} className="mobile-toggle btn"><Icons.Settings /></button>
-
+{/* Fixed: Hide the gear button when settings are open so it doesn't block the title */}
+{!showSettings && <button onClick={() => setShowSettings(true)} className="mobile-toggle btn"><Icons.Settings /></button>}
 <div className={`sidebar ${showSettings ? 'open' : 'closed'} ${projectorMode ? 'projector-hidden' : ''}`}>
-    <div style={{padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.05)'}}>
+<div style={{padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.05)'}}>
          <div style={{display:'flex', justifyContent: 'space-between', alignItems:'center'}}>
             <div style={{display: 'flex', flexDirection: 'column'}}>
                 <h1 style={{margin:0, fontSize: '1.2rem', fontWeight:900, background: `linear-gradient(to right, ${theme.accent}, ${theme.colors[2]})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}>
@@ -2259,7 +2406,7 @@ marbleReward: marbleReward
             </div>
             <button className="btn" onClick={() => setShowSettings(false)} style={{padding: 6, border:'none', background:'rgba(239,68,68,0.1)', color:'#ef4444'}} title="Hide Settings"><Icons.X /></button>
          </div>
-         {/* Sound and Confetti Row */}
+         {/* Mute and Celebrate Row */}
          <div style={{display:'flex', gap: 6}}>
             <button className="btn" onClick={() => setSoundEnabled(!soundEnabled)} style={{flex: 1, justifyContent: 'center', background: soundEnabled ? 'rgba(255,255,255,0.05)' : 'rgba(239,68,68,0.2)', color: soundEnabled ? 'inherit' : '#ef4444'}}>
                 {soundEnabled ? <Icons.Volume2 /> : <Icons.VolumeX />} {soundEnabled ? "Audio On" : "Muted"}
@@ -2323,8 +2470,11 @@ marbleReward: marbleReward
                                 <div style={{display:'flex', gap:4}}>
                                     <button onClick={() => setShowImport(true)} className="btn" style={{padding:'2px 6px', fontSize:'0.7rem', background: 'rgba(128,128,128,0.1)'}} title="Import List"><Icons.Clipboard /> Import</button>
                                     <button onClick={() => setShowHeatmap(!showHeatmap)} className="btn" style={{padding:'2px 6px', fontSize:'0.7rem', background: showHeatmap ? theme.accent : 'rgba(128,128,128,0.1)'}}><Icons.BarChart /> {showHeatmap ? 'Editor' : 'Heatmap'}</button>
-                                    {(hiddenNames.length > 0 || Object.keys(participation).length > 0) && (<button onClick={() => {setHiddenNames([]); setParticipation({})}} style={{fontSize:'0.7rem', color: '#ef4444', background:'none', border:'none', cursor:'pointer'}}><Icons.Refresh /> Reset</button>)}
-                                 </div>
+{(hiddenNames.length > 0 || hiddenConcepts.length > 0 || Object.keys(participation).length > 0) && (
+    <button onClick={() => {setHiddenNames([]); setHiddenConcepts([]); setParticipation({})}} style={{fontSize:'0.7rem', color: '#ef4444', background:'none', border:'none', cursor:'pointer'}}>
+        <Icons.Refresh /> Reset All
+    </button>
+)}                          </div>
                             </div>
                             {showHeatmap ? (
                                 <div style={{height: 120, minHeight: 100, overflowY:'auto', background:'rgba(0,0,0,0.2)', borderRadius:8, padding:8, marginTop: 8}}>
@@ -2345,37 +2495,80 @@ marbleReward: marbleReward
                             {!showHeatmap && (<div style={{display:'flex', flexWrap:'wrap', gap: 4, marginTop: 8}}>{names.slice(0, 50).map((n, i) => (<div key={i} onClick={() => toggleHidden(n)} className={`chip ${hiddenNames.includes(n) ? 'hidden' : ''}`} title="Click to hide/show">{n}</div>))}</div>)}
                         </div>
 
-                        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8}}>
-                            <button onClick={shuffleNames} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}><Icons.Shuffle/> Shuffle</button>
-                            <button onClick={() => setMysteryMode(!mysteryMode)} className="btn" style={{background: mysteryMode ? theme.accent : 'rgba(128,128,128,0.1)', color: mysteryMode ? '#fff' : 'inherit', boxShadow: mysteryMode ? `0 0 10px ${theme.accent}` : 'none', transition: 'all 0.3s ease'}}>{mysteryMode ? <Icons.EyeOff/> : <Icons.Eye/>} {mysteryMode ? 'Mystery On' : 'Visible'}</button>
-                            
-                            <button onClick={() => {setBattleMode(!battleMode); setBloomMode('off'); setBattleStage('idle'); setRapidMode(false);}} className="btn" style={{background: battleMode ? '#f59e0b' : 'rgba(128,128,128,0.1)', color: battleMode ? '#fff' : 'inherit', boxShadow: battleMode ? '0 0 10px #f59e0b' : 'none'}}><Icons.Swords/> Battle</button>
-                            <button onClick={() => setFairMode(!fairMode)} className="btn" style={{background: fairMode ? '#10b981' : 'rgba(128,128,128,0.1)', color: fairMode ? '#fff' : 'inherit', boxShadow: fairMode ? '0 0 10px #10b981' : 'none'}}><Icons.Scales/> Fair Mode</button>
+<div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8}}>
+    
+    {/* PRIMARY NAVIGATION: SHOW WHEEL */}
+    <button onClick={showWheel} className="btn" style={{gridColumn: 'span 2', background: theme.accent, color: '#fff', justifyContent:'center', fontWeight: 800, padding: 12, boxShadow: `0 4px 15px ${theme.accent}40`, marginBottom: 4}}>
+        🎡 Show Wheel
+    </button>
 
-                            <button onClick={() => setShowNoiseMeter(!showNoiseMeter)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>🎤 Noise Meter</button>
-                            <button onClick={() => setShowGroups(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}><Icons.Users/> Teams</button>
-                            
-                            <button onClick={() => setShowBrainBreak(!showBrainBreak)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>⚡ Strategy</button>
-                            <button onClick={() => setShowPoll(!showPoll)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>📊 Poll</button>
-                            
-                            <button onClick={generateLineup} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>📜 Lineup</button>
-                            <button onClick={() => setShowTimer(!showTimer)} className="btn" style={{background: showTimer ? theme.accent : 'rgba(128,128,128,0.1)', color: showTimer ? '#fff' : 'inherit', justifyContent: 'center'}}><Icons.Clock/> {showTimer ? "Hide Timer" : "Timer"}</button>
+    {/* SECTION 1: SPINNER CONTROLS */}
+    <button onClick={shuffleNames} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>
+        <Icons.Shuffle/> Shuffle
+    </button>
+    <button onClick={() => setFairMode(!fairMode)} className="btn" style={{background: fairMode ? '#10b981' : 'rgba(128,128,128,0.1)', color: fairMode ? '#fff' : 'inherit', boxShadow: fairMode ? '0 0 10px #10b981' : 'none'}}>
+        <Icons.Scales/> Fair Mode
+    </button>
 
-                            {/* ROW 6: Seating & Marble Jar */}
-                            <button onClick={() => setShowSeating(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)', justifyContent:'center'}}>
-                                <Icons.Grid/> Seating
-                            </button>
-                            <button onClick={() => setShowMarbleJar(!showMarbleJar)} className="btn" style={{background: 'rgba(128,128,128,0.1)', justifyContent:'center'}}>
-                                <Icons.Jar/> Marble Jar
-                            </button>
+    <button onClick={() => setFastMode(!fastMode)} className="btn" style={{background: fastMode ? '#f97316' : 'rgba(128,128,128,0.1)', color: fastMode ? '#fff' : 'inherit', boxShadow: fastMode ? '0 0 10px #f97316' : 'none'}}>
+        {fastMode ? "⚡ Fast Mode" : "🎡 Normal Spin"}
+    </button>
+    <button onClick={() => setMysteryMode(!mysteryMode)} className="btn" style={{background: mysteryMode ? theme.accent : 'rgba(128,128,128,0.1)', color: mysteryMode ? '#fff' : 'inherit', boxShadow: mysteryMode ? `0 0 10px ${theme.accent}` : 'none', transition: 'all 0.3s ease'}}>
+        {mysteryMode ? <Icons.EyeOff/> : <Icons.Eye/>} {mysteryMode ? 'Mystery On' : 'Visible'}
+    </button>
 
-                            <div style={{display:'flex', gap: 4, gridColumn: 'span 2'}}>
-                                <button onClick={toggleBloomMode} className="btn" style={{flex: 1, background: bloomMode !== 'off' ? '#3b82f6' : 'rgba(128,128,128,0.1)', color: bloomMode !== 'off' ? '#fff' : 'inherit', boxShadow: bloomMode !== 'off' ? '0 0 10px #3b82f6' : 'none'}}><Icons.Brain/> {bloomMode === 'solo' ? "Concept Only" : bloomMode === 'dual' ? "Name + Concept" : "Concept Mode"}</button>
-                                <button onClick={() => setShowConceptEdit(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)', padding: 10}} title="Edit Concepts"><Icons.Edit/></button>
-                            </div>
+    {/* SECTION 2: ACTIVITIES */}
+    <button onClick={() => {setBattleMode(!battleMode); setBloomMode('off'); setBattleStage('idle'); setRapidMode(false);}} className="btn" style={{background: battleMode ? '#f59e0b' : 'rgba(128,128,128,0.1)', color: battleMode ? '#fff' : 'inherit', boxShadow: battleMode ? '0 0 10px #f59e0b' : 'none'}}>
+        <Icons.Swords/> Battle Mode
+    </button>
+    <button onClick={() => setShowBrainBreak(!showBrainBreak)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>
+        <Icons.Zap/> Strategy
+    </button>
 
-                            <button onClick={() => setShowTodo(!showTodo)} className="btn" style={{gridColumn: 'span 2', background: showTodo ? theme.accent : 'rgba(128,128,128,0.1)', color: showTodo ? '#fff' : 'inherit', justifyContent: 'center'}}><Icons.Check/> {showTodo ? "Hide Tasks" : "To-Do List"}</button>
-                        </div>
+    <button onClick={() => setShowGroups(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>
+        <Icons.Users/> Teams
+    </button>
+    <button onClick={generateLineup} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>
+        📜 Lineup
+    </button>
+
+    {/* SECTION 3: MANAGEMENT */}
+    <button onClick={() => setShowPoll(!showPoll)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>
+        <Icons.BarChart/> Live Poll
+    </button>
+    <button onClick={() => setShowTimer(!showTimer)} className="btn" style={{background: showTimer ? theme.accent : 'rgba(128,128,128,0.1)', color: showTimer ? '#fff' : 'inherit', justifyContent: 'center'}}>
+        <Icons.Clock/> {showTimer ? "Hide Timer" : "Timer"}
+    </button>
+
+    <button onClick={() => setShowSeating(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)', justifyContent:'center'}}>
+        <Icons.Grid/> Seating
+    </button>
+    <button onClick={() => setShowMarbleJar(!showMarbleJar)} className="btn" style={{background: 'rgba(128,128,128,0.1)', justifyContent:'center'}}>
+        <Icons.Jar/> Marble Jar
+    </button>
+
+    {/* SECTION 4: ENVIRONMENT */}
+    <button onClick={() => setShowNoiseMeter(!showNoiseMeter)} className="btn" style={{background: 'rgba(128,128,128,0.1)'}}>
+        🎤 Noise Meter
+    </button>
+    
+    {/* CALM BREATH (Moved here, neutral style) */}
+    <button onClick={() => setShowBreath(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)', justifyContent:'center'}}>
+        <Icons.Activity/> Calm Breath
+    </button>
+
+    {/* FULL WIDTH ITEMS */}
+    <div style={{display:'flex', gap: 4, gridColumn: 'span 2'}}>
+        <button onClick={toggleBloomMode} className="btn" style={{flex: 1, background: bloomMode !== 'off' ? '#3b82f6' : 'rgba(128,128,128,0.1)', color: bloomMode !== 'off' ? '#fff' : 'inherit', boxShadow: bloomMode !== 'off' ? '0 0 10px #3b82f6' : 'none'}}>
+            <Icons.Brain/> {bloomMode === 'solo' ? "Concept Only" : bloomMode === 'dual' ? "Name + Concept" : "Concept Mode"}
+        </button>
+        <button onClick={() => setShowConceptEdit(true)} className="btn" style={{background: 'rgba(128,128,128,0.1)', padding: 10}} title="Edit Concepts"><Icons.Edit/></button>
+    </div>
+
+    <button onClick={() => setShowTodo(!showTodo)} className="btn" style={{gridColumn: 'span 2', background: showTodo ? theme.accent : 'rgba(128,128,128,0.1)', color: showTodo ? '#fff' : 'inherit', justifyContent: 'center'}}>
+        <Icons.Check/> {showTodo ? "Hide Tasks" : "To-Do List"}
+    </button>
+</div>
 
                         <div style={{marginTop: 8}}>
                             <span className="section-title">Rapid Fire (Multi-Pick)</span>
@@ -2394,20 +2587,28 @@ marbleReward: marbleReward
                              </div>
                         </div>
 
-                        <div style={{marginTop: 20}}>
-                             {trafficMode === 'sidebar' ? (
-                                 <div style={{display:'flex', gap:8}}>
-                                     <div style={{flex: 1, display:'flex', justifyContent:'space-evenly', background:'rgba(0,0,0,0.2)', padding: '12px 0', borderRadius: 12, border:'1px solid rgba(255,255,255,0.05)'}}>
-                                         {['red', 'yellow', 'green'].map(color => (
-                                             <button key={color} onClick={() => setTrafficLight(color)} style={{width: 40, height: 40, borderRadius: '50%', cursor: 'pointer', border: '3px solid rgba(255,255,255,0.15)', background: color === 'red' ? '#ef4444' : color === 'yellow' ? '#eab308' : '#22c55e', opacity: trafficLight === color ? 1 : 0.25, transform: trafficLight === color ? 'scale(1.15)' : 'scale(1)', boxShadow: trafficLight === color ? `0 0 20px ${color === 'red' ? '#ef4444' : color === 'yellow' ? '#eab308' : '#22c55e'}` : 'none', transition: 'all 0.3s ease'}} />
-                                         ))}
-                                     </div>
-                                     <button onClick={() => setTrafficMode('floating')} className="btn" style={{width: 50, justifyContent:'center', background:'rgba(255,255,255,0.1)'}} title="Project to Screen"><Icons.Maximize/></button>
-                                 </div>
-                             ) : (
-                                 <button onClick={() => setTrafficMode('sidebar')} className="btn" style={{width:'100%', justifyContent:'center', background:'rgba(34,197,94,0.15)', color:'#4ade80', padding: 16, border:'1px dashed rgba(34,197,94,0.3)'}}><Icons.ArrowDown/> Active on Screen (Click to Return)</button>
-                             )}
-                        </div>
+<div style={{marginTop: 20}}>
+     {trafficMode === 'sidebar' ? (
+         <div style={{display:'flex', gap:8}}>
+             {/* The Lights */}
+             <div style={{flex: 1, display:'flex', justifyContent:'space-evenly', background:'rgba(0,0,0,0.2)', padding: '12px 0', borderRadius: 12, border:'1px solid rgba(255,255,255,0.05)'}}>
+                 {['red', 'yellow', 'green'].map(color => (
+                     <button key={color} onClick={() => setTrafficLight(color)} style={{width: 40, height: 40, borderRadius: '50%', cursor: 'pointer', border: '3px solid rgba(255,255,255,0.15)', background: color === 'red' ? '#ef4444' : color === 'yellow' ? '#eab308' : '#22c55e', opacity: trafficLight === color ? 1 : 0.25, transform: trafficLight === color ? 'scale(1.15)' : 'scale(1)', boxShadow: trafficLight === color ? `0 0 20px ${color === 'red' ? '#ef4444' : color === 'yellow' ? '#eab308' : '#22c55e'}` : 'none', transition: 'all 0.3s ease'}} />
+                 ))}
+             </div>
+             
+             {/* Mode Buttons */}
+             <div style={{display:'flex', flexDirection:'column', gap:4}}>
+                 <button onClick={() => setTrafficMode('floating')} className="btn" style={{padding: '4px 8px', justifyContent:'center', background:'rgba(255,255,255,0.1)'}} title="Open Widget"><Icons.Minimize style={{transform: 'rotate(45deg)'}}/></button>
+                 <button onClick={() => setTrafficMode('full')} className="btn" style={{padding: '4px 8px', justifyContent:'center', background:'rgba(255,255,255,0.1)'}} title="Full Screen"><Icons.Maximize/></button>
+             </div>
+         </div>
+     ) : (
+         <button onClick={() => setTrafficMode('sidebar')} className="btn" style={{width:'100%', justifyContent:'center', background:'rgba(34,197,94,0.15)', color:'#4ade80', padding: 16, border:'1px dashed rgba(34,197,94,0.3)'}}>
+             <Icons.ArrowDown/> {trafficMode === 'full' ? "Exit Full Screen" : "Close Widget"}
+         </button>
+     )}
+</div>
 
                         <div style={{marginTop: 20}}>
                              <span className="section-title">Big Message (Billboard)</span>
@@ -2454,6 +2655,200 @@ marbleReward: marbleReward
                         </DraggableBox>
                     )}
 
+{/* FULL SCREEN TRAFFIC LIGHT (Board Mode) */}
+{trafficMode === 'full' && (
+    <div style={{
+        position: 'absolute', 
+        inset: 0, 
+        background: '#1e293b', 
+        zIndex: 40, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        flexDirection: 'column'
+    }}>
+        {/* Top Controls (Just Exit) */}
+        <div style={{position: 'absolute', top: 20, right: 20, pointerEvents: 'auto'}}>
+            <button onClick={() => setTrafficMode('sidebar')} className="btn" style={{background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 30, padding: '10px 20px', color: 'white', fontWeight: 'bold', boxShadow: '0 4px 12px rgba(0,0,0,0.3)'}}>
+                <Icons.Minimize/> Exit Big Screen
+            </button>
+        </div>
+        
+        {/* The Giant Lights */}
+        <div style={{
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '4vh', 
+            alignItems: 'center',
+            height: '80%',
+            justifyContent: 'center'
+        }}>
+            {['red', 'yellow', 'green'].map(color => (
+                <div 
+                    key={color}
+                    onClick={() => setTrafficLight(color)}
+                    style={{
+                        width: '22vh', 
+                        height: '22vh', 
+                        borderRadius: '50%',
+                        background: color === 'red' ? '#ef4444' : color === 'yellow' ? '#eab308' : '#22c55e',
+                        opacity: trafficLight === color ? 1 : 0.2,
+                        boxShadow: trafficLight === color 
+                            ? `0 0 80px ${color === 'red' ? '#ef4444' : color === 'yellow' ? '#eab308' : '#22c55e'}, inset 0 0 30px rgba(255,255,255,0.4)` 
+                            : 'inset 0 0 20px rgba(0,0,0,0.5)',
+                        border: '6px solid rgba(0,0,0,0.2)',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                        transform: trafficLight === color ? 'scale(1.1)' : 'scale(1)'
+                    }}
+                />
+            ))}
+        </div>
+    </div>
+)}
+
+{/* CALM BREATH SUITE OVERLAY (Board Mode) */}
+{showBreath && (
+    <div style={{
+        position: 'absolute', 
+        inset: 0, 
+        background: 'rgba(15, 23, 42, 0.98)', 
+        backdropFilter: 'blur(20px)', 
+        zIndex: 40, // Layers correctly behind the sidebar
+        display: 'flex', 
+        flexDirection: 'column', 
+        padding: 20
+    }}>
+        
+        {/* TOP CONTROLS (Only Close Button Needed) */}
+        <div style={{
+            position: 'absolute', top: 20, right: 20, 
+            zIndex: 50, pointerEvents: 'auto'
+        }}>
+            <button onClick={() => setShowBreath(false)} className="btn" style={{background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 30, padding: '10px 20px', color: 'white', fontWeight: 'bold'}}>
+                Close &times;
+            </button>
+        </div>
+
+        {/* MAIN BREATHING CIRCLE */}
+        <div style={{
+            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', position: 'relative'
+        }}>
+            <div style={{
+                width: '35vmin', height: '35vmin', borderRadius: '50%',
+                background: breathPhase === 'in' ? BREATH_PATTERNS[breathMode].color : (breathPhase === 'out' ? '#64748b' : '#eab308'),
+                boxShadow: `0 0 ${breathPhase === 'hold' || breathPhase === 'rest' ? '60px' : '30px'} ${breathPhase === 'in' ? BREATH_PATTERNS[breathMode].color : (breathPhase === 'out' ? '#64748b' : '#eab308')}`,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                transition: `transform ${breathPhase === 'in' ? BREATH_PATTERNS[breathMode].phases.in : (breathPhase === 'out' ? BREATH_PATTERNS[breathMode].phases.out : 0)}s linear, background 1s ease`, 
+                transform: breathPhase === 'in' ? 'scale(1.5)' : (breathPhase === 'hold' ? 'scale(1.5)' : 'scale(1)'),
+                opacity: (breathPhase === 'rest') ? 0.6 : 1
+            }}>
+                <div style={{fontSize: '5rem', fontWeight: 900, color: 'white', textShadow: '0 4px 20px rgba(0,0,0,0.4)', fontVariantNumeric: 'tabular-nums'}}>
+                    {breathCount}
+                </div>
+                <div style={{fontSize: 'clamp(1rem, 2vw, 1.6rem)', textTransform: 'uppercase', letterSpacing: 3, color: 'rgba(255,255,255,0.95)', marginTop: 0, fontWeight: 700}}>
+                    {breathText}
+                </div>
+            </div>
+
+            {/* DESCRIPTION TEXT */}
+            <div style={{marginTop: '10vh', minHeight: 60, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                {showBreathTips && (
+                    <div style={{position: 'relative', opacity: 0.7, fontSize: '1.1rem', fontStyle: 'italic', maxWidth: 600, textAlign: 'center', lineHeight: 1.6, padding: '10px 40px', background: 'rgba(0,0,0,0.2)', borderRadius: 12}}>
+                        {breathMode === 'relax' && "Long exhales signal safety to the nervous system."}
+                        {breathMode === 'focus' && "Box breathing sharpens concentration and alertness."}
+                        {breathMode === 'balance' && "Equal breathing restores heart rate coherence."}
+                        
+                        <button 
+                            onClick={() => setShowBreathTips(false)} 
+                            style={{position: 'absolute', top: 5, right: 5, background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', padding: 4}}
+                            title="Hide Description"
+                        >
+                            <Icons.X style={{width: 14, height: 14}}/>
+                        </button>
+                    </div>
+                )}
+            </div>
+        </div>
+
+        {/* MODE SWITCHER */}
+        <div style={{marginBottom: 20, display: 'flex', gap: 10, background: 'rgba(255,255,255,0.05)', padding: 10, borderRadius: 20, flexWrap: 'wrap', justifyContent: 'center', zIndex: 50}}>
+            {Object.keys(BREATH_PATTERNS).map(mode => (
+                <button 
+                    key={mode} 
+                    onClick={() => { 
+                        setBreathMode(mode); 
+                        setBreathPhase('rest'); 
+                        setShowBreathTips(true); 
+                    }} 
+                    style={{
+                        background: breathMode === mode ? BREATH_PATTERNS[mode].color : 'transparent',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: 16,
+                        cursor: 'pointer',
+                        fontWeight: breathMode === mode ? 900 : 500,
+                        opacity: breathMode === mode ? 1 : 0.6,
+                        transition: 'all 0.3s ease',
+                        fontSize: '0.9rem'
+                    }}
+                >
+                    {BREATH_PATTERNS[mode].name}
+                </button>
+            ))}
+        </div>
+    </div>
+)}
+
+{/* MISSING TRAFFIC LIGHT WIDGET */}
+{trafficMode === 'floating' && (
+    <DraggableBox x={100} y={100} style={{zIndex: 60}}>
+        <div style={{
+            background: 'rgba(15, 23, 42, 0.95)', 
+            padding: '20px', 
+            borderRadius: '24px', 
+            border: '2px solid rgba(255,255,255,0.1)', 
+            backdropFilter: 'blur(12px)',
+            boxShadow: '0 30px 60px rgba(0,0,0,0.6)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '20px'
+        }}>
+            <div style={{width: '100%', display: 'flex', justifyContent: 'flex-end'}}>
+                <button 
+                    onClick={() => setTrafficMode('sidebar')} 
+                    style={{background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 4}}
+                    title="Minimize to Sidebar"
+                >
+                    <Icons.Minimize />
+                </button>
+            </div>
+            
+            {['red', 'yellow', 'green'].map(color => (
+                <div 
+                    key={color}
+                    onClick={() => setTrafficLight(color)}
+                    style={{
+                        width: 100, 
+                        height: 100, 
+                        borderRadius: '50%',
+                        background: color === 'red' ? '#ef4444' : color === 'yellow' ? '#eab308' : '#22c55e',
+                        opacity: trafficLight === color ? 1 : 0.2,
+                        boxShadow: trafficLight === color 
+                            ? `0 0 40px ${color === 'red' ? '#ef4444' : color === 'yellow' ? '#eab308' : '#22c55e'}, inset 0 0 20px rgba(255,255,255,0.3)` 
+                            : 'inset 0 0 20px rgba(0,0,0,0.5)',
+                        border: '4px solid rgba(0,0,0,0.2)',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                        transform: trafficLight === color ? 'scale(1.05)' : 'scale(1)'
+                    }}
+                />
+            ))}
+        </div>
+    </DraggableBox>
+)}
                     {stickies.map(note => (
                         <DraggableBox key={note.id} x={note.x} y={note.y} style={{zIndex: 56}}>
                             <div style={{width: 200, minHeight: 200, background: note.color, boxShadow: '5px 5px 15px rgba(0,0,0,0.3)', transform: `rotate(${note.rotation}deg)`, padding: 12, borderRadius: 2, display: 'flex', flexDirection: 'column', position: 'relative', resize: 'both', overflow: 'hidden'}}>
@@ -2465,10 +2860,10 @@ marbleReward: marbleReward
                     ))}
 
                     {/* SEATING CHART */}
-                    {showSeating && <SeatingChart names={activeNames} onClose={() => setShowSeating(false)} />}
+                    {showSeating && <SeatingChart names={activeNames} onClose={() => setShowSeating(false)} seats={seats} setSeats={setSeats} studentData={seatingData} setStudentData={setSeatingData} />}
 
                     {/* MARBLE JAR WIDGET */}
-{showMarbleJar && <MarbleJar audioCtx={audioCtxRef} names={activeNames} onClose={() => setShowMarbleJar(false)} marbles={marbles} setMarbles={setMarbles} target={marbleTarget} setTarget={setMarbleTarget} reward={marbleReward} setReward={setMarbleReward} />}                    
+                    {showMarbleJar && <MarbleJar audioCtx={audioCtxRef} names={activeNames} onClose={() => setShowMarbleJar(false)} marbles={marbles} setMarbles={setMarbles} target={marbleTarget} setTarget={setMarbleTarget} reward={marbleReward} setReward={setMarbleReward} />}                    
                     {/* KAGAN STRATEGY WIDGET */}
                     {showBrainBreak && (
                         breakView === 'full' ? (
@@ -2504,44 +2899,50 @@ marbleReward: marbleReward
                     )}
 
                     {/* QUICK POLL WIDGET */}
-{showPoll && (
+                    {showPoll && (
                         pollView === 'full' ? (
                             <div style={{position:'fixed', inset:0, zIndex:100, background:'rgba(15,23,42,0.98)', display:'flex', flexDirection:'column', padding:40}}>
                                 <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:40}}>
-                                    <input value={pollData.question} onChange={(e) => setPollData(prev => ({...prev, question: e.target.value}))} style={{fontSize:'3rem', fontWeight:800, color:'#3b82f6', background:'transparent', border:'none', outline:'none', width:'70%'}} />
+                                    <h1 style={{fontSize:'3rem', fontWeight:800, color:'#94a3b8', margin:0}}>LIVE POLL</h1>
                                     <div style={{display:'flex', gap:20}}><button onClick={()=>setPollView('window')} className="btn" style={{fontSize:'1.5rem', padding:'10px 20px', background:'rgba(255,255,255,0.1)'}}><Icons.Minimize/> Window</button><button onClick={()=>setShowPoll(false)} className="btn" style={{fontSize:'1.5rem', padding:'10px 20px', background:'rgba(239,68,68,0.2)', color:'#ef4444'}}><Icons.X/></button></div>
                                 </div>
                                 <div style={{display:'flex', gap:40, flex:1, alignItems:'flex-end', justifyContent:'center', paddingBottom:50}}>
                                     {['A','B','C','D'].map((opt, i) => {
-                                        const max = Math.max(...Object.values(pollData.options), 1);
-                                        const h = (pollData.options[opt] / max) * 100;
+                                        const max = Math.max(...Object.values(pollCounts), 1);
+                                        const h = (pollCounts[opt] / max) * 100;
                                         const color = i===0?'#ef4444':i===1?'#3b82f6':i===2?'#eab308':'#22c55e';
                                         return (
                                             <div key={opt} style={{flex:1, height:'100%', display:'flex', flexDirection:'column', justifyContent:'flex-end', alignItems:'center'}}>
-                                                <div style={{fontSize:'4rem', fontWeight:900, marginBottom:20, color:'white'}}>{pollData.options[opt]}</div>
-                                                <div style={{width:'100%', height:`${Math.max(h, 2)}%`, background:color, borderRadius:'20px 20px 0 0', transition:'height 0.5s ease-out', opacity:0.8}}></div>
-                                                <input value={pollData.labels[opt]} onChange={(e) => updatePollLabel(opt, e.target.value)} style={{fontSize:'1.5rem', fontWeight:700, marginTop:20, color:color, background:'transparent', border:'none', textAlign:'center', width:'100%'}} />
-                                                <div style={{display:'flex', gap:10, marginTop:20}}><button onClick={() => updatePollCount(opt, 1)} className="btn" style={{width:60, height:60, fontSize:'2rem', justifyContent:'center'}}>+</button><button onClick={() => updatePollCount(opt, -1)} className="btn" style={{width:60, height:60, fontSize:'2rem', justifyContent:'center'}}>-</button></div>
+                                                <div style={{fontSize:'4rem', fontWeight:900, marginBottom:20, color:'white'}}>{pollCounts[opt]}</div>
+                                                <div style={{width:'100%', height:`${Math.max(h, 2)}%`, background:color, borderRadius:'20px 20px 0 0', transition:'height 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)', opacity:0.8}}></div>
+                                                <div style={{fontSize:'3rem', fontWeight:900, marginTop:20, color:color}}>{opt}</div>
+                                                <div style={{display:'flex', gap:10, marginTop:20}}><button onClick={() => updatePoll(opt, 1)} style={{width:60, height:60, fontSize:'2rem', borderRadius:10, border:'none', background:'rgba(255,255,255,0.1)', color:'white', cursor:'pointer'}}>+</button><button onClick={() => updatePoll(opt, -1)} style={{width:60, height:60, fontSize:'2rem', borderRadius:10, border:'none', background:'rgba(255,255,255,0.05)', color:'#94a3b8', cursor:'pointer'}}>-</button></div>
                                             </div>
                                         );
                                     })}
                                 </div>
                             </div>
+                        ) : pollView === 'mini' ? (
+                            <DraggableBox x={150} y={250} style={{zIndex: 55}}>
+                                <div style={{background: '#334155', padding:'8px 16px', borderRadius:30, display:'flex', alignItems:'center', gap:15, border:'1px solid rgba(255,255,255,0.1)'}}>
+                                    <span style={{fontWeight:800, color:'white'}}>POLL</span>
+                                    <div style={{display:'flex', gap:8, fontSize:'0.9rem', fontWeight:700}}><span style={{color:'#ef4444'}}>A:{pollCounts.A}</span><span style={{color:'#3b82f6'}}>B:{pollCounts.B}</span><span style={{color:'#eab308'}}>C:{pollCounts.C}</span><span style={{color:'#22c55e'}}>D:{pollCounts.D}</span></div>
+                                    <button onClick={()=>setPollView('window')} style={{background:'none', border:'none', color:'white', cursor:'pointer'}}><Icons.Maximize/></button>
+                                </div>
+                            </DraggableBox>
                         ) : (
                             <DraggableBox x={150} y={250} style={{zIndex: 55}}>
-                                <div style={{background: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(10px)', padding: 16, borderRadius: 16, width: 300, boxShadow: '0 10px 30px rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)'}}>
+                                <div style={{background: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(10px)', padding: 16, borderRadius: 16, width: 280, boxShadow: '0 10px 30px rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)'}}>
                                     <div style={{display:'flex',justifyContent:'space-between', marginBottom:15, alignItems:'center'}}>
-                                        <input value={pollData.question} onChange={(e) => setPollData(prev => ({...prev, question: e.target.value}))} style={{fontWeight:800, color:'#94a3b8', textTransform:'uppercase', fontSize:'0.8rem', background:'transparent', border:'none', outline:'none', width:'120px'}} />
-                                        <div style={{display:'flex', gap:8}}><button onClick={() => setPollData(prev => ({...prev, options: {A:0,B:0,C:0,D:0}}))} style={{fontSize:'0.7rem', color:'#94a3b8', background:'none', border:'none', cursor:'pointer'}}>Reset</button><button onClick={() => setPollView('full')} style={{background:'none', border:'none', color:'white', cursor:'pointer'}}><Icons.Maximize/></button><button onClick={() => setShowPoll(false)} style={{background:'none', border:'none', color:'white', cursor:'pointer'}}><Icons.X/></button></div>
+                                        <span style={{fontWeight:800, color:'#94a3b8', textTransform:'uppercase', fontSize:'0.8rem'}}>Class Vote</span>
+                                        <div style={{display:'flex', gap:8}}><button onClick={() => setPollCounts({A:0,B:0,C:0,D:0})} style={{fontSize:'0.7rem', color:'#94a3b8', background:'none', border:'none', cursor:'pointer'}}>Reset</button><button onClick={() => setPollView('full')} style={{background:'none', border:'none', color:'white', cursor:'pointer'}}><Icons.Maximize/></button><button onClick={() => setPollView('mini')} style={{background:'none', border:'none', color:'white', cursor:'pointer'}}><Icons.Minimize/></button><button onClick={() => setShowPoll(false)} style={{background:'none', border:'none', color:'white', cursor:'pointer'}}><Icons.X/></button></div>
                                     </div>
-                                    <div style={{display:'flex', flexDirection:'column', gap:10}}>
+                                    <div style={{display:'flex', gap:12, justifyContent:'space-between'}}>
                                         {['A','B','C','D'].map((opt, i) => (
-                                            <div key={opt} style={{display:'flex', alignItems:'center', gap:10, background:'rgba(255,255,255,0.03)', padding:'8px', borderRadius:8}}>
-                                                <div style={{fontWeight:900, color: i===0?'#ef4444':i===1?'#3b82f6':i===2?'#eab308':'#22c55e', width:20}}>{opt}</div>
-                                                <input value={pollData.labels[opt]} onChange={(e) => updatePollLabel(opt, e.target.value)} style={{flex:1, fontSize:'0.85rem', background:'transparent', border:'none', color:'white', outline:'none'}} />
-                                                <div style={{fontWeight:800, minWidth:20, textAlign:'right'}}>{pollData.options[opt]}</div>
-                                                <button onClick={() => updatePollCount(opt, 1)} style={{background:'rgba(255,255,255,0.1)', border:'none', color:'white', borderRadius:4, width:24, height:24}}>+</button>
-                                                <button onClick={() => updatePollCount(opt, -1)} style={{background:'rgba(255,255,255,0.05)', border:'none', color:'#94a3b8', borderRadius:4, width:24, height:24}}>-</button>
+                                            <div key={opt} style={{display:'flex', flexDirection:'column', alignItems:'center', gap:6, flex:1}}>
+                                                <div style={{fontWeight:800, color: i===0?'#ef4444':i===1?'#3b82f6':i===2?'#eab308':'#22c55e'}}>{opt}</div>
+                                                <div style={{fontSize:'1.5rem', fontWeight:800}}>{pollCounts[opt]}</div>
+                                                <div style={{display:'flex', flexDirection:'column', gap:4, width:'100%'}}><button onClick={() => updatePoll(opt, 1)} style={{background:'rgba(255,255,255,0.1)', border:'none', color:'white', borderRadius:4, cursor:'pointer', padding:4}}>+</button><button onClick={() => updatePoll(opt, -1)} style={{background:'rgba(255,255,255,0.05)', border:'none', color:'#94a3b8', borderRadius:4, cursor:'pointer', padding:4}}>-</button></div>
                                             </div>
                                         ))}
                                     </div>
@@ -2653,25 +3054,15 @@ marbleReward: marbleReward
                         </>
                     )}
 
-<div ref={containerRef} className="wheel-container" style={{
-    width: '100%', 
-    flex: 1, 
-    display: 'flex', 
-    alignItems: 'center', 
-    justifyContent: 'center',
-    padding: projectorMode ? '0' : '20px', /* Remove padding in projector mode for max size */
-    minHeight: 0
-}}>
-    <canvas ref={canvasRef} onClick={spin} style={{
-        maxWidth: '100%', 
-        /* Grow to 90% of screen height in projector mode, otherwise leave room for buttons */
-        maxHeight: projectorMode ? '90vh' : ((showTimer || showNoiseMeter) ? '40vh' : '75vh'), 
-        objectFit: 'contain', 
-        cursor: 'pointer', 
-        filter: 'drop-shadow(0 10px 30px rgba(0,0,0,0.4))',
-        transition: 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)'
-    }}/>
-</div>
+<div ref={containerRef} className="wheel-container" style={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '20px', minHeight: 0 }}>
+                        {/* Wheel 1 */}
+                        <canvas ref={canvasRef} onClick={spin} style={{ maxWidth: bloomMode === 'dual' ? '45%' : '90%', maxHeight: '75vh', cursor: 'pointer' }}/>
+                        
+                        {/* Wheel 2 */}
+                        {bloomMode === 'dual' && (
+                            <canvas ref={canvasRef2} style={{ maxWidth: '45%', maxHeight: '75vh' }}/>
+                        )}
+                    </div>
                     
                     <button onClick={spin} disabled={isSpinning || (bloomMode !== 'solo' && activeNames.length < 2)} className="btn btn-primary">
                         {isSpinning ? (battleMode ? (battleStage === 'waiting' ? 'NEXT...' : 'SPINNING...') : 'SPINNING...') : (battleMode ? 'BATTLE SPIN!' : 'SPIN!')}
@@ -2692,60 +3083,34 @@ marbleReward: marbleReward
                       </div>
                 )}
 
-                {chanceAnim && (
-                    <div className="modal-overlay">
-                        <div className="modal" style={{background:'transparent', boxShadow:'none', border:'none', pointerEvents: 'none'}}>
-                            {chanceAnim === 'coin' && (
-                                <div style={{perspective: 1000, width: 150, height: 150, margin: '0 auto'}}>
-                                    <div style={{width:'100%', height:'100%', transformStyle:'preserve-3d', animation: chanceResult === 'HEADS' ? 'flipHeads 2.5s cubic-bezier(0.1, 0.7, 0.6, 1) forwards' : 'flipTails 2.5s cubic-bezier(0.1, 0.7, 0.6, 1) forwards'}}>
-                                        <div style={{position:'absolute', width:'100%', height:'100%', backfaceVisibility:'hidden', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', borderRadius:'50%', border:'8px solid #cbd5e1', background:'radial-gradient(circle, #f8fafc, #94a3b8)', color:'#334155'}}><div style={{fontSize:'3rem'}}>🤴</div><div>HEADS</div></div>
-                                        <div style={{position:'absolute', width:'100%', height:'100%', backfaceVisibility:'hidden', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', borderRadius:'50%', border:'8px solid #f59e0b', background:'radial-gradient(circle, #fef3c7, #d97706)', color:'#78350f', transform:'rotateY(180deg)'}}><div style={{fontSize:'3rem'}}>🦅</div><div>TAILS</div></div>
-                                    </div>
-                                    <style>{`@keyframes flipHeads { 0% { transform: rotateY(0); } 100% { transform: rotateY(1800deg); } } @keyframes flipTails { 0% { transform: rotateY(0); } 100% { transform: rotateY(1980deg); } }`}</style>
-                                </div>
-                            )}
-                            {chanceAnim === 'dice' && (
-                                <div style={{perspective: 1000, width: 100, height: 100, margin: '20px auto'}}>
-                                    <div style={{width:'100%', height:'100%', transformStyle:'preserve-3d', animation: `roll${chanceResult} 2s cubic-bezier(0.1, 0.8, 0.2, 1) forwards`}}>
-                                        {[1,2,3,4,5,6].map(n => {
-                                            let t = ''; if(n===1) t='translateZ(50px)'; if(n===2) t='rotateX(-90deg) translateZ(50px)'; if(n===3) t='rotateY(-90deg) translateZ(50px)'; if(n===4) t='rotateY(90deg) translateZ(50px)'; if(n===5) t='rotateX(90deg) translateZ(50px)'; if(n===6) t='rotateY(180deg) translateZ(50px)';
-                                            return <div key={n} style={{position:'absolute', width:100, height:100, background:'white', border:'2px solid #ccc', borderRadius:16, display:'flex', alignItems:'center', justifyContent:'center', fontSize:40, fontWeight:'bold', color:'#333', backfaceVisibility:'hidden', transform: t}}>{n}</div>
-                                        })}
-                                    </div>
-                                    <style>{`@keyframes roll1 { 0% { transform: rotateX(0) rotateY(0); } 100% { transform: rotateX(720deg) rotateY(720deg); } } @keyframes roll2 { 0% { transform: rotateX(0) rotateY(0); } 100% { transform: rotateX(810deg) rotateY(720deg); } } @keyframes roll3 { 0% { transform: rotateX(0) rotateY(0); } 100% { transform: rotateX(720deg) rotateY(810deg); } } @keyframes roll4 { 0% { transform: rotateX(0) rotateY(0); } 100% { transform: rotateX(720deg) rotateY(630deg); } } @keyframes roll5 { 0% { transform: rotateX(0) rotateY(0); } 100% { transform: rotateX(630deg) rotateY(720deg); } } @keyframes roll6 { 0% { transform: rotateX(0) rotateY(0); } 100% { transform: rotateX(720deg) rotateY(900deg); } }`}</style>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
                 
-                {winner && !battleMode && (
-                    <div className="modal-overlay">
+{winner && !battleMode && (
+                    <div className="modal-overlay" style={{zIndex: 100}}>
                         <div className="modal">
                             <div style={{width: 80, height: 80, background: '#fbbf24', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto', boxShadow: '0 0 30px rgba(251, 191, 36, 0.4)'}}><div style={{color:'#78350f'}}><Icons.Trophy/></div></div>
-                            <h2 style={{margin:0, opacity: 0.6}}>The winner is</h2>
-                            {rapidMode ? (
-                                <div style={{margin:'20px 0', maxHeight:'300px', overflowY:'auto'}}>
-                                    {rapidWinners.map((n,i) => <div key={i} style={{fontSize:'1.5rem', fontWeight:700, borderBottom:'1px solid rgba(128,128,128,0.2)', padding:'8px'}}>{i+1}. {n}</div>)}
-                                    {rapidWinners.length < rapidTarget && <div style={{opacity:0.5, fontStyle:'italic', marginTop:10}}>Picking next...</div>}
+                            <h2 style={{margin:0, opacity: 0.6}}>Results</h2>
+                            <div className="winner-name">
+                                {rapidMode ? (
+                                    <div style={{fontSize: '1.5rem', display:'flex', flexDirection:'column', gap: 10, color: 'white'}}>
+                                        {rapidWinners.map((rw, idx) => <div key={idx}>⭐ {rw}</div>)}
+                                    </div>
+                                ) : winner}
+                            </div>
+                            {bloomMode === 'dual' && bloomWinner && !rapidMode && (
+                                <div style={{background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', padding: '10px', borderRadius: 8, marginTop: -10, marginBottom: 20, fontWeight: 700}}>
+                                    <div style={{fontSize: '0.8rem', opacity: 0.8, textTransform:'uppercase'}}>Task</div>
+                                    <div style={{fontSize: '1.5rem'}}>{bloomWinner}</div>
                                 </div>
-                            ) : (
-                                <>
-                                    <div className="winner-name">{winner}</div>
-                                    {bloomMode === 'dual' && bloomWinner && (<div style={{background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', padding: '10px', borderRadius: 8, marginTop: -10, marginBottom: 20, fontWeight: 700}}><div style={{fontSize: '0.8rem', opacity: 0.8, textTransform:'uppercase', letterSpacing:1}}>Challenge</div><div style={{fontSize: '1.5rem'}}>{bloomWinner}</div></div>)}
-                                    {winnerTimerActive && <WinnerTimer duration={30} onComplete={() => playSound('bell', audioCtxRef)} />}
-                                    {!winnerTimerActive && (<button onClick={() => setWinnerTimerActive(true)} className="btn" style={{margin:'0 auto', background:'rgba(255,255,255,0.1)', fontSize:'0.9rem'}}>Start 30s Timer</button>)}
-                                </>
                             )}
-                            <div style={{display: 'flex', flexDirection: 'column', gap: 12, marginTop: 20}}>
-                                {(chanceAnim || tempWheelItems) ? (
-                                    <button onClick={removeWinner} className="btn" style={{justifyContent: 'center', background: 'rgba(255,255,255,0.1)', padding: 12}}>Close</button>
-                                ) : (
-                                    <>
-                                        <button onClick={() => setWinner(null)} className="btn" style={{justifyContent: 'center', background: 'rgba(128,128,128,0.2)', padding: 12}}>Keep Name</button>
-                                        <button onClick={removeWinner} className="btn" style={{justifyContent: 'center', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: 12}}><Icons.UserMinus/> Remove & Close</button>
-                                    </>
+<div style={{display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20}}>
+                                {winner && (
+                                    <button onClick={removeWinner} className="btn" style={{justifyContent: 'center', background: 'rgba(239, 68, 68, 0.2)', color: '#f87171'}}>
+                                        {rapidMode ? `❌ Hide all ${rapidWinners.length} Winners` : "❌ Hide Winner for Session"}
+                                    </button>
                                 )}
+                                <button onClick={() => { setWinner(null); setRapidMode(false); }} className="btn" style={{justifyContent: 'center', background: 'rgba(255,255,255,0.1)', padding: 12}}>
+                                    Keep on Wheel
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -2754,6 +3119,44 @@ marbleReward: marbleReward
                 {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
                 {showImport && <ImportModal onClose={() => setShowImport(false)} onImport={performImport} />}
                 {showGroups && <GroupMakerModal names={activeNames} onClose={() => setShowGroups(false)} onStartScoring={handleStartScoring} />}
+                {/* --- CHANCE ANIMATIONS OVERLAY --- */}
+                {chanceAnim && (
+                    <div className="modal-overlay" style={{zIndex: 999}} onClick={() => setChanceAnim(null)}>
+                        <div className="modal" style={{background:'rgba(15, 23, 42, 0.95)', border:'2px solid rgba(255,255,255,0.2)', pointerEvents:'auto'}}>
+                            {chanceAnim === 'coin' && (
+                                <div style={{perspective: 1000, width: 200, height: 200, margin: '0 auto'}}>
+                                    <div style={{width:'100%', height:'100%', transformStyle:'preserve-3d', animation: chanceResult === 'HEADS' ? 'flipHeads 2.5s cubic-bezier(0.1, 0.7, 0.6, 1) forwards' : 'flipTails 2.5s cubic-bezier(0.1, 0.7, 0.6, 1) forwards'}}>
+                                        <div style={{position:'absolute', width:'100%', height:'100%', backfaceVisibility:'hidden', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', borderRadius:'50%', border:'8px solid #cbd5e1', background:'radial-gradient(circle, #f8fafc, #94a3b8)', color:'#334155'}}>
+                                            <div style={{fontSize:'4rem'}}>🤴</div><div style={{fontSize:'1.5rem', fontWeight:800}}>HEADS</div>
+                                        </div>
+                                        <div style={{position:'absolute', width:'100%', height:'100%', backfaceVisibility:'hidden', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', borderRadius:'50%', border:'8px solid #f59e0b', background:'radial-gradient(circle, #fef3c7, #d97706)', color:'#78350f', transform:'rotateY(180deg)'}}>
+                                            <div style={{fontSize:'4rem'}}>🦅</div><div style={{fontSize:'1.5rem', fontWeight:800}}>TAILS</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+{chanceAnim === 'dice' && (
+    <div className="dice-container">
+        <div className="dice-cube" style={{ animation: `roll${chanceResult} 2s cubic-bezier(0.1, 0.7, 0.6, 1) forwards` }}>
+            <div className="dice-face face-1">1</div>
+            <div className="dice-face face-2">2</div>
+            <div className="dice-face face-3">3</div>
+            <div className="dice-face face-4">4</div>
+            <div className="dice-face face-5">5</div>
+            <div className="dice-face face-6">6</div>
+        </div>
+    </div>
+)}
+                            
+                            <div style={{marginTop:'40px', color:'white', fontSize:'2.5rem', fontWeight:900, textShadow:'0 0 20px rgba(0,0,0,0.5)', animation:'fadeIn 0.5s forwards 2.2s', opacity:0}}>
+                                {chanceResult}!
+                            </div>
+                            
+                            <button onClick={() => setChanceAnim(null)} className="btn" style={{marginTop:'20px', background:'white', color:'black', padding:'10px 30px', margin:'0 auto', pointerEvents:'auto'}}>Dismiss</button>
+                        </div>
+                    </div>
+                )}
                 {showConceptEdit && <ConceptModal concepts={concepts} onClose={() => setShowConceptEdit(false)} onSave={setConcepts} />}
                 {showLineup && (
                     <div className="modal-overlay">
@@ -2772,7 +3175,7 @@ marbleReward: marbleReward
                             </div>
                             <div style={{marginTop:20, display:'flex', gap:10}}>
                                 <button onClick={generateLineup} disabled={isLineupAnimating} className="btn" style={{flex:1, justifyContent:'center', background:'rgba(255,255,255,0.1)', opacity: isLineupAnimating ? 0.5 : 1}}><Icons.Shuffle/> {isLineupAnimating ? "Shuffling..." : "Reshuffle"}</button>
-                                <button onClick={() => {navigator.clipboard.writeText(lineupList.map((n,i)=>`${i+1}. ${n}`).join('\\n')); alert("List copied to clipboard!");}} className="btn" style={{flex:1, justifyContent:'center', background: theme.accent, color:'white'}}><Icons.Copy/> Copy List</button>
+                                <button onClick={() => {navigator.clipboard.writeText(lineupList.map((n,i)=>`${i+1}. ${n}`).join('\n')); alert("List copied to clipboard!");}} className="btn" style={{flex:1, justifyContent:'center', background: theme.accent, color:'white'}}><Icons.Copy/> Copy List</button>
                             </div>
                         </div>
                     </div>
